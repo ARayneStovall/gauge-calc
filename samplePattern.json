@@ -1,0 +1,28 @@
+{
+    "pattern_gauge": {
+        "stitches_per_4in": 22,
+        "rows_per_4in": 32,
+        "stitch_pattern": "stockinette"
+    },
+    "knitter_gauge": {
+        "stitches_per_4in": 28,
+        "rows_per_4in": 28,
+        "stitch_pattern": "stockinette"
+    },
+    "sections": [
+        {
+            "name": "cast on",
+            "stitch_count": 132,
+            "repeat_multiple": 1,
+            "row_count": 1,
+            "row_repeat_multiple": 1
+        },
+        {
+            "name": "ribbing",
+            "stitch_count": 244,
+            "repeat_multiple": 4,
+            "row_count": 80,
+            "row_repeat_multiple": 2
+        }
+    ]
+}
