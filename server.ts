@@ -15,14 +15,21 @@ app.listen(3001, function () {
     console.log("Server running on port 3001");
 });
 
+// Accepts a multipart upload (pdf + knitter's gauge, and optionally a
+// preferred size label / manual stamp offset) and returns the same PDF with
+// gauge-adjusted numbers stamped over the originals. The uploaded file never
+// touches disk — multer keeps it in memory and it's passed straight through
+// to extractAndStamp.
 app.post("/api/rescale", upload.single("pdf"), async function (req, res) {
     try {
-        var knitterGaugeSts = Number(req.body.knitterGaugeSts);
-        var knitterGaugeRow = Number(req.body.knitterGaugeRow);
-        if (req.file === undefined){
-            throw new Error ("no file found");
+        const knitterGaugeSts = Number(req.body.knitterGaugeSts);
+        const knitterGaugeRow = Number(req.body.knitterGaugeRow);
+        const stampDx = Number(req.body.stampDx) || 0;
+        const preferredSize = req.body.preferredSize || "3";
+        if (req.file === undefined) {
+            throw new Error("no file found");
         }
-        var pdfBytes = await extractAndStamp(req.file.buffer, knitterGaugeSts, knitterGaugeRow);
+        const pdfBytes = await extractAndStamp(req.file.buffer, knitterGaugeSts, knitterGaugeRow, stampDx, preferredSize);
         res.set("Content-Type", "application/pdf");
         res.send(pdfBytes);
     } catch (error) {

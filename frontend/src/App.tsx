@@ -5,6 +5,9 @@ function App() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [knitterGaugeSts, setKnitterGaugeSts] = useState(0);
   const [knitterGaugeRow, setKnitterGaugeRow] = useState(0);
+  const [preferredSize, setPreferredSize] = useState('3');
+  const [stampDx, setStampDx] = useState(0);
+
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +25,16 @@ function App() {
     setKnitterGaugeRow(Number(event.target.value));
   }
 
+  function handlePreferredSizeChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setPreferredSize(event.target.value);
+  }
+
+  function handleStampDxChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setStampDx(Number(event.target.value));
+  }
+
+
+
   async function handleSubmit() {
     if (pdfFile === null) {
         return;
@@ -34,6 +47,9 @@ function App() {
       formData.append("pdf", pdfFile);
       formData.append("knitterGaugeSts", String(knitterGaugeSts));
       formData.append("knitterGaugeRow", String(knitterGaugeRow));
+      formData.append("preferredSize", String(preferredSize));
+      formData.append("stampDx", String(stampDx));
+
 
       var response = await fetch("http://localhost:3001/api/rescale", {
           method: "POST",
@@ -73,8 +89,11 @@ function App() {
       {loading && <span>Processing…</span>}
       {error && <div style={{ color: 'red' }}>{error}</div>}
       <input type="file" accept="application/pdf" onChange={handleFileChange} />
-      <input type="number" value={knitterGaugeSts} onChange={handleStsChange} />
-      <input type="number" value={knitterGaugeRow} onChange={handleRowChange} />
+      <label>Stitches gauge <input type="number" value={knitterGaugeSts} onChange={handleStsChange} /></label>
+      <label>Rows gauge <input type="number" value={knitterGaugeRow} onChange={handleRowChange} /></label>
+      <label>Preferred size label <input type="text" value={preferredSize} onChange={handlePreferredSizeChange} /></label>
+      <label>Stamp X offset <input type="number" value={stampDx} onChange={handleStampDxChange} /></label>
+
       {downloadUrl !== null && (
         <a href={downloadUrl} download="rescaled-pattern.pdf">Download</a>
       )}
