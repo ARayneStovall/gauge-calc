@@ -35,6 +35,22 @@ Runs on `http://localhost:5173`.
 
 With both running, open the frontend in your browser, upload a pattern PDF, enter your gauge (and optionally a preferred size label or a manual stamp x-offset), and download the recalculated version.
 
+## Deploying
+
+The frontend (static) and backend (needs a running Node process + your Anthropic API key kept secret) are hosted separately, both on free tiers.
+
+**Backend — [Render](https://render.com):**
+1. New → Blueprint, connect this repo. Render will read `render.yaml` and set up the build (`npm install --include=dev && npm run build`) and start (`npm start`) commands automatically.
+2. When prompted for env vars, set `ANTHROPIC_API_KEY` (required) and `FRONTEND_ORIGIN` (optional — the deployed frontend's URL, once you have it, to restrict CORS instead of allowing any origin).
+3. Note the resulting service URL (`https://<name>.onrender.com`) — the frontend needs it.
+
+Free tier caveat: the service spins down after inactivity, so the first request after idle time takes 10–30s to wake up before PDF processing even starts.
+
+**Frontend — [Vercel](https://vercel.com):**
+1. New Project, import this repo, set **Root Directory** to `frontend`. Vercel auto-detects the Vite build.
+2. Add env var `VITE_API_URL` set to the Render backend URL from above.
+3. Deploy. Vite only bakes in vars prefixed `VITE_` at build time, so if you change `VITE_API_URL` later you'll need to redeploy the frontend, not just the backend.
+
 ## Project structure
 
 - `rescale.ts` — pure gauge-rescaling and rounding-to-repeat math.

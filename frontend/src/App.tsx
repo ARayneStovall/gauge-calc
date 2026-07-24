@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import './App.css'
 
+// Set VITE_API_URL in the deployed environment to point at the hosted
+// backend; falls back to the local dev server when unset.
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 function App() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [knitterGaugeSts, setKnitterGaugeSts] = useState(0);
@@ -51,7 +55,7 @@ function App() {
       formData.append("stampDx", String(stampDx));
 
 
-      var response = await fetch("http://localhost:3001/api/rescale", {
+      var response = await fetch(`${API_URL}/api/rescale`, {
           method: "POST",
           body: formData,
       });

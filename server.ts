@@ -5,14 +5,20 @@ import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
-app.use(cors());
+// FRONTEND_ORIGIN restricts CORS to a single known origin in production
+// (set it to your deployed frontend's URL). Left unset, cors() defaults to
+// allowing any origin, which is fine for local development.
+const frontendOrigin = process.env.FRONTEND_ORIGIN;
+app.use(cors(frontendOrigin ? { origin: frontendOrigin } : undefined));
 
 app.get("/", function (req, res) {
     res.send("hello");
 });
 
-app.listen(3001, function () {
-    console.log("Server running on port 3001");
+// Hosts like Render assign the port via PORT; 3001 remains the local default.
+const port = Number(process.env.PORT) || 3001;
+app.listen(port, function () {
+    console.log(`Server running on port ${port}`);
 });
 
 // Accepts a multipart upload (pdf + knitter's gauge, and optionally a
