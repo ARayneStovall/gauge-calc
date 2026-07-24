@@ -10,7 +10,6 @@ function App() {
   const [knitterGaugeSts, setKnitterGaugeSts] = useState(0);
   const [knitterGaugeRow, setKnitterGaugeRow] = useState(0);
   const [preferredSize, setPreferredSize] = useState('3');
-  const [stampDx, setStampDx] = useState(0);
 
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,10 +32,6 @@ function App() {
     setPreferredSize(event.target.value);
   }
 
-  function handleStampDxChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setStampDx(Number(event.target.value));
-  }
-
 
 
   async function handleSubmit() {
@@ -52,7 +47,6 @@ function App() {
       formData.append("knitterGaugeSts", String(knitterGaugeSts));
       formData.append("knitterGaugeRow", String(knitterGaugeRow));
       formData.append("preferredSize", String(preferredSize));
-      formData.append("stampDx", String(stampDx));
 
 
       var response = await fetch(`${API_URL}/api/rescale`, {
@@ -88,19 +82,43 @@ function App() {
 
 
   return (
-    <div>
-      <button onClick={handleSubmit}>Recalculate</button>
-      {loading && <span>Processing…</span>}
-      {error && <div style={{ color: 'red' }}>{error}</div>}
-      <input type="file" accept="application/pdf" onChange={handleFileChange} />
-      <label>Stitches gauge <input type="number" value={knitterGaugeSts} onChange={handleStsChange} /></label>
-      <label>Rows gauge <input type="number" value={knitterGaugeRow} onChange={handleRowChange} /></label>
-      <label>Preferred size label <input type="text" value={preferredSize} onChange={handlePreferredSizeChange} /></label>
-      <label>Stamp X offset <input type="number" value={stampDx} onChange={handleStampDxChange} /></label>
+    <div className="page">
+      <div className="card">
+        <h1>gaugeCalc</h1>
+        <p className="subtitle">Upload a pattern PDF and your gauge to get the stitch and row counts recalculated for you.</p>
 
-      {downloadUrl !== null && (
-        <a href={downloadUrl} download="rescaled-pattern.pdf">Download</a>
-      )}
+        <div className="field">
+          <label htmlFor="pdf-input">Pattern PDF</label>
+          <input id="pdf-input" type="file" accept="application/pdf" onChange={handleFileChange} />
+          {pdfFile && <span className="file-name">{pdfFile.name}</span>}
+        </div>
+
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor="sts-input">Stitches / 4in</label>
+            <input id="sts-input" type="number" value={knitterGaugeSts} onChange={handleStsChange} />
+          </div>
+          <div className="field">
+            <label htmlFor="row-input">Rows / 4in</label>
+            <input id="row-input" type="number" value={knitterGaugeRow} onChange={handleRowChange} />
+          </div>
+        </div>
+
+        <div className="field">
+          <label htmlFor="size-input">Preferred size label</label>
+          <input id="size-input" type="text" value={preferredSize} onChange={handlePreferredSizeChange} />
+        </div>
+
+        <button className="primary-button" onClick={handleSubmit} disabled={loading || pdfFile === null}>
+          {loading ? 'Processing…' : 'Recalculate'}
+        </button>
+
+        {error && <div className="error-banner">{error}</div>}
+
+        {downloadUrl !== null && (
+          <a className="download-link" href={downloadUrl} download="rescaled-pattern.pdf">Download rescaled pattern</a>
+        )}
+      </div>
     </div>
   );
 
