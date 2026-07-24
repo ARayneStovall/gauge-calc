@@ -5,11 +5,20 @@ import multer from "multer";
 const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
-// FRONTEND_ORIGIN restricts CORS to a single known origin in production
-// (set it to your deployed frontend's URL). Left unset, cors() defaults to
-// allowing any origin, which is fine for local development.
+// FRONTEND_ORIGIN restricts CORS to the production frontend URL, plus any
+// Vercel preview deployment for this same project (each branch/PR gets its
+// own unique *.vercel.app subdomain, so a single fixed origin can't cover
+// them). Left unset, allows any origin — fine for local development.
 const frontendOrigin = process.env.FRONTEND_ORIGIN;
-app.use(cors(frontendOrigin ? { origin: frontendOrigin } : undefined));
+const previewOriginPattern = /^https:\/\/gaugecalculator-[a-z0-9-]+\.vercel\.app$/;
+app.use(cors(frontendOrigin ? {
+    origin(origin, callback) {
+        if (!origin || origin === frontendOrigin || previewOriginPattern.test(origin)) {
+            return callback(null, true);
+        }
+        callback(new Error("Not allowed by CORS"));
+    }
+} : undefined));
 
 app.get("/", function (req, res) {
     res.send("hello");
