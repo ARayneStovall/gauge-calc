@@ -17,11 +17,12 @@ app.listen(3001, function () {
 
 app.post("/api/rescale", upload.single("pdf"), async function (req, res) {
     try {
-        var knitterGauge = Number(req.body.knitterGauge);
+        var knitterGaugeSts = Number(req.body.knitterGaugeSts);
+        var knitterGaugeRow = Number(req.body.knitterGaugeRow);
         if (req.file === undefined){
             throw new Error ("no file found");
         }
-        var pdfBytes = await extractAndStamp(req.file.buffer, knitterGauge);
+        var pdfBytes = await extractAndStamp(req.file.buffer, knitterGaugeSts, knitterGaugeRow);
         res.set("Content-Type", "application/pdf");
         res.send(pdfBytes);
     } catch (error) {

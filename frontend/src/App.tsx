@@ -3,43 +3,78 @@ import './App.css'
 
 function App() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [knitterGauge, setKnitterGauge] = useState(0);
+  const [knitterGaugeSts, setKnitterGaugeSts] = useState(0);
+  const [knitterGaugeRow, setKnitterGaugeRow] = useState(0);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     var file = event.target.files?.[0];
     setPdfFile(file ?? null);
   }
 
-  function handleGaugeChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setKnitterGauge(Number(event.target.value));
+  function handleStsChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setKnitterGaugeSts(Number(event.target.value));
+  }
+
+  function handleRowChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setKnitterGaugeRow(Number(event.target.value));
   }
 
   async function handleSubmit() {
     if (pdfFile === null) {
         return;
     }
+    try {
+      setError(null);
+      setLoading(true);
+      console.log('Submitting PDF', { name: pdfFile.name, size: pdfFile.size, knitterGaugeSts, knitterGaugeRow });
+      var formData = new FormData();
+      formData.append("pdf", pdfFile);
+      formData.append("knitterGaugeSts", String(knitterGaugeSts));
+      formData.append("knitterGaugeRow", String(knitterGaugeRow));
 
-    var formData = new FormData();
-    formData.append("pdf", pdfFile);
-    formData.append("knitterGauge", String(knitterGauge));
+      var response = await fetch("http://localhost:3001/api/rescale", {
+          method: "POST",
+          body: formData,
+      });
 
-    var response = await fetch("http://localhost:3001/api/rescale", {
-        method: "POST",
-        body: formData,
-    });
+      console.log('Response status', response.status, response.headers.get('content-type'));
+      if (!response.ok) {
+        const text = await response.text().catch(() => 'no body');
+        throw new Error(`Server error: ${response.status} ${text}`);
+      }
 
-    var pdfBlob = await response.blob();
-    var url = URL.createObjectURL(pdfBlob);
-    setDownloadUrl(url);
+      var pdfBlob = await response.blob();
+      var url = URL.createObjectURL(pdfBlob);
+      setDownloadUrl(url);
+
+      // auto-download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'rescaled-pattern.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      console.log('Downloaded rescaled PDF');
+    } catch (err: any) {
+      console.error('Recalculate failed', err);
+      setError(err?.message ?? String(err));
+    } finally {
+      setLoading(false);
+    }
   }
 
 
   return (
     <div>
       <button onClick={handleSubmit}>Recalculate</button>
+      {loading && <span>Processing…</span>}
+      {error && <div style={{ color: 'red' }}>{error}</div>}
       <input type="file" accept="application/pdf" onChange={handleFileChange} />
-      <input type="number" value={knitterGauge} onChange={handleGaugeChange} />
+      <input type="number" value={knitterGaugeSts} onChange={handleStsChange} />
+      <input type="number" value={knitterGaugeRow} onChange={handleRowChange} />
       {downloadUrl !== null && (
         <a href={downloadUrl} download="rescaled-pattern.pdf">Download</a>
       )}

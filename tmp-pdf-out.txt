@@ -1,0 +1,279 @@
+PAGE 1 height 792 width 612 items 17
+PAGE 2 height 792 width 612 items 76
+PAGE 3 height 792 width 612 items 115
+PAGE 4 height 792 width 612 items 138
+MATCH 4 18 "you can shorten the ribbing" transform=[10.2502,0,0,10.2502,133.96116139999998,583.292931] width=120.45010020000001 height=10.2502
+SURROUNDING:
+   15 " " transform=[10.2502,0,0,10.2502,41.0123478,583.292931] width=0.3890000000000003 height=0
+   16 "For a cropped look," transform=[10.2502,0,0,10.2502,44.9996756,583.292931] width=86.83969439999996 height=10.2502
+   17 " " transform=[10.2502,0,0,10.2502,131.83936999999997,583.292931] width=0.20700000000000063 height=0
+=> 18 "you can shorten the ribbing" transform=[10.2502,0,0,10.2502,133.96116139999998,583.292931] width=120.45010020000001 height=10.2502
+   19 "section by knitting less rows." transform=[10.2502,0,0,10.2502,36,569.6294144] width=125.84273041999997 height=10.2502
+   20 "•" transform=[10.2502,0,0,10.2502,36,552.3578274] width=5.0123478 height=10.2502
+   21 " " transform=[10.2502,0,0,10.2502,41.0123478,552.3578274] width=0.3890000000000003 height=0
+----
+MATCH 4 24 "ribbing rows." transform=[10.2502,0,0,10.2502,36,538.6943108] width=56.26334779999998 height=10.2502
+SURROUNDING:
+   21 " " transform=[10.2502,0,0,10.2502,41.0123478,552.3578274] width=0.3890000000000003 height=0
+   22 "For more coverage at the hip" transform=[10.2502,0,0,10.2502,44.9996756,552.3578274] width=130.46454559999992 height=10.2502
+   23 ", you can add extra" transform=[10.2502,0,0,10.2502,175.25921719999994,552.3578274] width=82.40135780000001 height=10.2502
+=> 24 "ribbing rows." transform=[10.2502,0,0,10.2502,36,538.6943108] width=56.26334779999998 height=10.2502
+   25 "•" transform=[10.2502,0,0,10.2502,36,521.4227238000001] width=5.0123478 height=10.2502
+   26 " " transform=[10.2502,0,0,10.2502,41.0123478,521.4227238000001] width=0.3890000000000003 height=0
+   27 "To adjust for bust fit," transform=[10.2502,0,0,10.2502,44.9996756,521.4227238000001] width=94.08658579999998 height=10.2502
+----
+MATCH 4 42 ", so the ribbing stays snug and contrasts" transform=[10.2502,0,0,10.2502,395.39311360000016,578.5831668000001] width=176.04718500000007 height=10.2502
+SURROUNDING:
+   39 " " transform=[10.2502,0,0,10.2502,509.4368388000006,592.2466834] width=0.20700000000000063 height=0
+   40 "100% wool or" transform=[10.2502,0,0,10.2502,511.5586302000006,592.2466834] width=61.3781975999998 height=10.2502
+   41 "a wool blend" transform=[10.2502,0,0,10.2502,338.32,578.5831668000001] width=57.2781176000002 height=10.2502
+=> 42 ", so the ribbing stays snug and contrasts" transform=[10.2502,0,0,10.2502,395.39311360000016,578.5831668000001] width=176.04718500000007 height=10.2502
+   43 "the drapey top section." transform=[10.2502,0,0,10.2502,338.32,564.9196502000001] width=101.70248440000033 height=10.2502
+   44 "You can absolutely skip holding strands together" transform=[10.2502,0,0,10.2502,338.32,546.8587978] width=212.43539500000048 height=10.2502
+   45 "or even experiment with other fibres (like cotton," transform=[10.2502,0,0,10.2502,338.32,533.1952812000001] width=213.39891380000046 height=10.2502
+----
+MATCH 4 115 "ribbing for it to" transform=[8,0,0,8,36,380.4131] width=53.903199999999984 height=8
+SURROUNDING:
+   112 "kid silk. A couple" transform=[8,0,0,8,36,410.4131] width=59.112 height=8
+   113 "more inches" transform=[8,0,0,8,36,400.4131] width=43.8 height=8
+   114 "were added to" transform=[8,0,0,8,36,390.4131] width=52.4952 height=8
+=> 115 "ribbing for it to" transform=[8,0,0,8,36,380.4131] width=53.903199999999984 height=8
+   116 "hit the hip." transform=[8,0,0,8,36,370.4131] width=38.040000000000006 height=8
+   117 "Also added an" transform=[8,0,0,8,36,355.9171] width=51.911999999999985 height=8
+   118 "inch more to the" transform=[8,0,0,8,36,345.9171] width=59.272 height=8
+----
+MATCH 4 130 "ribbing rows" transform=[8,0,0,8,36,143.5651] width=44.296 height=8
+SURROUNDING:
+   127 "based on new" transform=[8,0,0,8,36,178.0611] width=50.42399999999999 height=8
+   128 "gauge.)" transform=[8,0,0,8,36,168.0611] width=27.408000000000005 height=8
+   129 "Decreased" transform=[8,0,0,8,36,153.5651] width=38.848 height=8
+=> 130 "ribbing rows" transform=[8,0,0,8,36,143.5651] width=44.296 height=8
+   131 "for a slightly" transform=[8,0,0,8,36,133.5651] width=44.56000000000001 height=8
+   132 "more cropped" transform=[8,0,0,8,36,123.5651] width=50.783999999999985 height=8
+   133 "fit. Not as much" transform=[8,0,0,8,36,113.5651] width=57.96799999999999 height=8
+----
+MATCH 4 134 "ribbing elasticity" transform=[8,0,0,8,36,103.5651] width=60.056 height=8
+SURROUNDING:
+   131 "for a slightly" transform=[8,0,0,8,36,133.5651] width=44.56000000000001 height=8
+   132 "more cropped" transform=[8,0,0,8,36,123.5651] width=50.783999999999985 height=8
+   133 "fit. Not as much" transform=[8,0,0,8,36,113.5651] width=57.96799999999999 height=8
+=> 134 "ribbing elasticity" transform=[8,0,0,8,36,103.5651] width=60.056 height=8
+   135 "compared to" transform=[8,0,0,8,36,93.5651] width=46.719999999999985 height=8
+   136 "100% wool but" transform=[8,0,0,8,36,83.5651] width=53.328 height=8
+   137 "still so cute!" transform=[8,0,0,8,36,73.5651] width=43.2712 height=8
+----
+PAGE 5 height 792 width 612 items 86
+MATCH 5 30 "D. Ribbing length (flat)" transform=[10.2502,0,0,10.2502,36,199.51672019999998] width=102.9017578 height=10.2502
+SURROUNDING:
+   27 "(3-5 inches of positive ease):" transform=[10.2502,0,0,10.2502,138.85050679999998,231.3435912] width=126.57971979999999 height=10.2502
+   28 "(35) 37 (39) 45 (49) in" transform=[10.2502,0,0,10.2502,36,217.68007459999998] width=96.24937799999992 height=10.2502
+   29 "" transform=[10.2502,0,0,10.2502,36,199.51672019999998] width=0 height=0
+=> 30 "D. Ribbing length (flat)" transform=[10.2502,0,0,10.2502,36,199.51672019999998] width=102.9017578 height=10.2502
+   31 ": (6.5) 6.5 (7) 7 (7.5) in" transform=[10.2502,0,0,10.2502,138.69675379999993,199.51672019999998] width=94.5990958 height=10.2502
+   32 "" transform=[10.2502,0,0,10.2502,36,181.35336579999998] width=0 height=0
+   33 "E. Ribbing circumference:" transform=[10.2502,0,0,10.2502,36,181.35336579999998] width=116.83177959999999 height=10.2502
+----
+MATCH 5 33 "E. Ribbing circumference:" transform=[10.2502,0,0,10.2502,36,181.35336579999998] width=116.83177959999999 height=10.2502
+SURROUNDING:
+   30 "D. Ribbing length (flat)" transform=[10.2502,0,0,10.2502,36,199.51672019999998] width=102.9017578 height=10.2502
+   31 ": (6.5) 6.5 (7) 7 (7.5) in" transform=[10.2502,0,0,10.2502,138.69675379999993,199.51672019999998] width=94.5990958 height=10.2502
+   32 "" transform=[10.2502,0,0,10.2502,36,181.35336579999998] width=0 height=0
+=> 33 "E. Ribbing circumference:" transform=[10.2502,0,0,10.2502,36,181.35336579999998] width=116.83177959999999 height=10.2502
+   34 " " transform=[10.2502,0,0,10.2502,152.83177959999995,181.35336579999998] width=0.1979999999999993 height=0
+   35 "(21) 23 (25) 28 (32.5) in" transform=[10.2502,0,0,10.2502,154.86131919999994,181.35336579999998] width=101.73323500000001 height=10.2502
+   36 "" transform=[10.2502,0,0,10.2502,36,163.19001139999997] width=0 height=0
+----
+MATCH 5 57 "Ribbing" transform=[10.2502,0,0,10.2502,338.32,597.8137456] width=35.02493340000016 height=10.2502
+SURROUNDING:
+   54 "" transform=[10.2502,0,0,10.2502,338.32,615.9771] width=0 height=0
+   55 "The Miu Top is worked bottom-up in the round." transform=[10.2502,0,0,10.2502,338.32,615.9771] width=205.60978682000027 height=10.2502
+   56 "" transform=[10.2502,0,0,10.2502,338.32,597.8137456] width=0 height=0
+=> 57 "Ribbing" transform=[10.2502,0,0,10.2502,338.32,597.8137456] width=35.02493340000016 height=10.2502
+   58 " " transform=[10.2502,0,0,10.2502,373.3449334000002,597.8137456] width=0.1979999999999799 height=0
+   59 ": Begin by knitting 2x2 ribbing using 3mm" transform=[10.2502,0,0,10.2502,375.37447299999997,597.8137456] width=180.2190164000002 height=10.2502
+   60 "(US 2.5) needles." transform=[10.2502,0,0,10.2502,338.31999999999994,584.150229] width=73.98594360000031 height=10.2502
+----
+MATCH 5 59 ": Begin by knitting 2x2 ribbing using 3mm" transform=[10.2502,0,0,10.2502,375.37447299999997,597.8137456] width=180.2190164000002 height=10.2502
+SURROUNDING:
+   56 "" transform=[10.2502,0,0,10.2502,338.32,597.8137456] width=0 height=0
+   57 "Ribbing" transform=[10.2502,0,0,10.2502,338.32,597.8137456] width=35.02493340000016 height=10.2502
+   58 " " transform=[10.2502,0,0,10.2502,373.3449334000002,597.8137456] width=0.1979999999999799 height=0
+=> 59 ": Begin by knitting 2x2 ribbing using 3mm" transform=[10.2502,0,0,10.2502,375.37447299999997,597.8137456] width=180.2190164000002 height=10.2502
+   60 "(US 2.5) needles." transform=[10.2502,0,0,10.2502,338.31999999999994,584.150229] width=73.98594360000031 height=10.2502
+   61 "" transform=[10.2502,0,0,10.2502,338.31999999999994,565.9868746] width=0 height=0
+   62 "Bust shaping" transform=[10.2502,0,0,10.2502,338.31999999999994,565.9868746] width=58.22113600000025 height=10.2502
+----
+MATCH 5 62 "Bust shaping" transform=[10.2502,0,0,10.2502,338.31999999999994,565.9868746] width=58.22113600000025 height=10.2502
+SURROUNDING:
+   59 ": Begin by knitting 2x2 ribbing using 3mm" transform=[10.2502,0,0,10.2502,375.37447299999997,597.8137456] width=180.2190164000002 height=10.2502
+   60 "(US 2.5) needles." transform=[10.2502,0,0,10.2502,338.31999999999994,584.150229] width=73.98594360000031 height=10.2502
+   61 "" transform=[10.2502,0,0,10.2502,338.31999999999994,565.9868746] width=0 height=0
+=> 62 "Bust shaping" transform=[10.2502,0,0,10.2502,338.31999999999994,565.9868746] width=58.22113600000025 height=10.2502
+   63 " " transform=[10.2502,0,0,10.2502,396.5411360000002,565.9868746] width=0.19800000000000206 height=0
+   64 ": Switch to 4mm (US 6) needles." transform=[10.2502,0,0,10.2502,398.57067560000024,565.9868746] width=141.29900700000007 height=10.2502
+   65 "Increase by about 40% in a single round using kfb" transform=[10.2502,0,0,10.2502,338.31999999999994,552.323358] width=216.97623360000034 height=10.2502
+----
+PAGE 6 height 792 width 612 items 118
+MATCH 6 10 "Ribbing" transform=[17.5717,0,0,17.5717,36,634.2771] width=60.58722160000001 height=17.5717
+SURROUNDING:
+   7 " " transform=[8,0,0,8,531.0253999999999,748.7173] width=0.19800000000002171 height=0
+   8 "UNIBANUNI" transform=[8,0,0,8,532.6094,748.7173] width=43.39200000000026 height=8
+   9 "" transform=[17.5717,0,0,17.5717,36,634.2771] width=0 height=0
+=> 10 "Ribbing" transform=[17.5717,0,0,17.5717,36,634.2771] width=60.58722160000001 height=17.5717
+   11 "" transform=[10.2502,0,0,10.2502,36,607.1102] width=0 height=0
+   12 "R1:" transform=[10.2502,0,0,10.2502,36,607.1102] width=13.663516599999994 height=10.2502
+   13 " " transform=[10.2502,0,0,10.2502,49.663516599999994,607.1102] width=0.19800000000000068 height=0
+----
+MATCH 6 15 "elastic cast on method), cast on (132) 144 (156) 180" transform=[10.2502,0,0,10.2502,36,593.4466834] width=225.91440800000007 height=10.2502
+SURROUNDING:
+   12 "R1:" transform=[10.2502,0,0,10.2502,36,607.1102] width=13.663516599999994 height=10.2502
+   13 " " transform=[10.2502,0,0,10.2502,49.663516599999994,607.1102] width=0.19800000000000068 height=0
+   14 "Using a German Twisted Cast On (or desired" transform=[10.2502,0,0,10.2502,51.6930562,607.1102] width=195.14330759999996 height=10.2502
+=> 15 "elastic cast on method), cast on (132) 144 (156) 180" transform=[10.2502,0,0,10.2502,36,593.4466834] width=225.91440800000007 height=10.2502
+   16 "(204) sts on 3mm (US 2.5) needles and place a stitch" transform=[10.2502,0,0,10.2502,36,579.7831668] width=231.93127540000012 height=10.2502
+   17 "marker before joining in the round, being careful not" transform=[10.2502,0,0,10.2502,36,566.1196502] width=227.51343920000008 height=10.2502
+   18 "to twist your work." transform=[10.2502,0,0,10.2502,36,552.4561336] width=81.45833939999994 height=10.2502
+----
+MATCH 6 20 "Work 2x2 ribbing in the round for (60) 60 (65) 65" transform=[10.2502,0,0,10.2502,36,534.2927792] width=221.01481240000004 height=10.2502
+SURROUNDING:
+   17 "marker before joining in the round, being careful not" transform=[10.2502,0,0,10.2502,36,566.1196502] width=227.51343920000008 height=10.2502
+   18 "to twist your work." transform=[10.2502,0,0,10.2502,36,552.4561336] width=81.45833939999994 height=10.2502
+   19 "" transform=[10.2502,0,0,10.2502,36,534.2927792] width=0 height=0
+=> 20 "Work 2x2 ribbing in the round for (60) 60 (65) 65" transform=[10.2502,0,0,10.2502,36,534.2927792] width=221.01481240000004 height=10.2502
+   21 "(70) rows" transform=[10.2502,0,0,10.2502,36,520.6292626000001] width=44.055359599999996 height=10.2502
+   22 " " transform=[10.2502,0,0,10.2502,80.05535959999999,520.6292626000001] width=0.20699999999999924 height=0
+   23 "or to desired length." transform=[10.2502,0,0,10.2502,82.17715099999998,520.6292626000001] width=87.83396379999995 height=10.2502
+----
+MATCH 6 29 "Bust shaping" transform=[17.5717,0,0,17.5717,36,436.0224] width=99.56125220000003 height=17.5717
+SURROUNDING:
+   26 "more cropped look, or add more rows to have it hit" transform=[10.2502,0,0,10.2502,36,488.8023916000001] width=225.38139760000013 height=10.2502
+   27 "your hip. Try it on as you go!" transform=[10.2502,0,0,10.2502,36,475.1388750000001] width=124.60143120000005 height=10.2502
+   28 "" transform=[17.5717,0,0,17.5717,36,436.0224] width=0 height=0
+=> 29 "Bust shaping" transform=[17.5717,0,0,17.5717,36,436.0224] width=99.56125220000003 height=17.5717
+   30 "" transform=[10.2502,0,0,10.2502,36,408.8555] width=0 height=0
+   31 "Switch to 4mm (US 6) needles." transform=[10.2502,0,0,10.2502,36,408.8555] width=140.02798219999994 height=10.2502
+   32 "R1:" transform=[10.2502,0,0,10.2502,36,390.6921456] width=13.663516599999994 height=10.2502
+----
+MATCH 6 34 "Knit all (132) 144 (156) 180 (204) sts in the round." transform=[10.2502,0,0,10.2502,51.78530799999999,390.6921456] width=214.3521824000001 height=10.2502
+SURROUNDING:
+   31 "Switch to 4mm (US 6) needles." transform=[10.2502,0,0,10.2502,36,408.8555] width=140.02798219999994 height=10.2502
+   32 "R1:" transform=[10.2502,0,0,10.2502,36,390.6921456] width=13.663516599999994 height=10.2502
+   33 " " transform=[10.2502,0,0,10.2502,49.663516599999994,390.6921456] width=0.20699999999999993 height=0
+=> 34 "Knit all (132) 144 (156) 180 (204) sts in the round." transform=[10.2502,0,0,10.2502,51.78530799999999,390.6921456] width=214.3521824000001 height=10.2502
+   35 "" transform=[10.2502,0,0,10.2502,36,372.5287912] width=0 height=0
+   36 "R2: (Increase round)" transform=[10.2502,0,0,10.2502,36,372.5287912] width=92.13904779999997 height=10.2502
+   37 "" transform=[10.2502,0,0,10.2502,36,354.3654368] width=0 height=0
+----
+MATCH 6 51 "should end up with 218 sts total" transform=[10.2502,0,0,10.2502,36,277.04817820000005] width=139.16696539999995 height=10.2502
+SURROUNDING:
+   48 "M:" transform=[10.2502,0,0,10.2502,36,290.71169480000003] width=11.234219199999997 height=10.2502
+   49 " " transform=[10.2502,0,0,10.2502,47.2342192,290.71169480000003] width=0.20699999999999993 height=0
+   50 "Work [(K1, kfb), (K2, kfb)] 31 times, knit 1 - you" transform=[10.2502,0,0,10.2502,49.3560106,290.71169480000003] width=198.88565562000002 height=10.2502
+=> 51 "should end up with 218 sts total" transform=[10.2502,0,0,10.2502,36,277.04817820000005] width=139.16696539999995 height=10.2502
+   52 "" transform=[10.2502,0,0,10.2502,36,258.88482380000005] width=0 height=0
+   53 "L:" transform=[10.2502,0,0,10.2502,36,258.88482380000005] width=7.913154399999997 height=10.2502
+   54 " " transform=[10.2502,0,0,10.2502,43.913154399999996,258.88482380000005] width=0.20699999999999993 height=0
+----
+MATCH 6 63 "Knit all (192) 204 (218) 252 (270) sts for (30) 34 (38)" transform=[10.2502,0,0,10.2502,36,195.23108180000003] width=237.24087900000012 height=10.2502
+SURROUNDING:
+   60 "(K2, kfb) 66 times, then knit the last 6 stitches -" transform=[10.2502,0,0,10.2502,52.318318399999995,227.05795280000004] width=206.34677620000002 height=10.2502
+   61 "you should end up with 270 sts total" transform=[10.2502,0,0,10.2502,36,213.39443620000003] width=159.35985939999998 height=10.2502
+   62 "" transform=[10.2502,0,0,10.2502,36,195.23108180000003] width=0 height=0
+=> 63 "Knit all (192) 204 (218) 252 (270) sts for (30) 34 (38)" transform=[10.2502,0,0,10.2502,36,195.23108180000003] width=237.24087900000012 height=10.2502
+   64 "40 (50) rows" transform=[10.2502,0,0,10.2502,36,181.56756520000002] width=59.27690659999999 height=10.2502
+   65 " " transform=[10.2502,0,0,10.2502,95.27690659999998,181.56756520000002] width=0.20699999999999924 height=0
+   66 "in the round." transform=[10.2502,0,0,10.2502,97.39869799999997,181.56756520000002] width=54.87957079999997 height=10.2502
+----
+MATCH 6 80 "K(96) 102 (109) 126 (135) sts for the front panel." transform=[10.2502,0,0,10.2502,354.10530800000004,597.6758456] width=208.4070664000003 height=10.2502
+SURROUNDING:
+   77 "Divide stitches evenly for the front and back panels." transform=[10.2502,0,0,10.2502,338.32,615.8392] width=234.15659382000044 height=10.2502
+   78 "R1:" transform=[10.2502,0,0,10.2502,338.32,597.6758456] width=13.663516600000053 height=10.2502
+   79 " " transform=[10.2502,0,0,10.2502,351.98351660000003,597.6758456] width=0.20700000000000063 height=0
+=> 80 "K(96) 102 (109) 126 (135) sts for the front panel." transform=[10.2502,0,0,10.2502,354.10530800000004,597.6758456] width=208.4070664000003 height=10.2502
+   81 "Place the remaining (96) 102 (109) 126 (135) sts for" transform=[10.2502,0,0,10.2502,338.32,584.012329] width=221.75282680000058 height=10.2502
+   82 "the back panel on spare yarn." transform=[10.2502,0,0,10.2502,338.32,570.3488124] width=127.31773420000039 height=10.2502
+   83 "" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=0 height=0
+----
+MATCH 6 81 "Place the remaining (96) 102 (109) 126 (135) sts for" transform=[10.2502,0,0,10.2502,338.32,584.012329] width=221.75282680000058 height=10.2502
+SURROUNDING:
+   78 "R1:" transform=[10.2502,0,0,10.2502,338.32,597.6758456] width=13.663516600000053 height=10.2502
+   79 " " transform=[10.2502,0,0,10.2502,351.98351660000003,597.6758456] width=0.20700000000000063 height=0
+   80 "K(96) 102 (109) 126 (135) sts for the front panel." transform=[10.2502,0,0,10.2502,354.10530800000004,597.6758456] width=208.4070664000003 height=10.2502
+=> 81 "Place the remaining (96) 102 (109) 126 (135) sts for" transform=[10.2502,0,0,10.2502,338.32,584.012329] width=221.75282680000058 height=10.2502
+   82 "the back panel on spare yarn." transform=[10.2502,0,0,10.2502,338.32,570.3488124] width=127.31773420000039 height=10.2502
+   83 "" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=0 height=0
+   84 "Front panel" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=90.52939840000015 height=17.5717
+----
+MATCH 6 84 "Front panel" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=90.52939840000015 height=17.5717
+SURROUNDING:
+   81 "Place the remaining (96) 102 (109) 126 (135) sts for" transform=[10.2502,0,0,10.2502,338.32,584.012329] width=221.75282680000058 height=10.2502
+   82 "the back panel on spare yarn." transform=[10.2502,0,0,10.2502,338.32,570.3488124] width=127.31773420000039 height=10.2502
+   83 "" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=0 height=0
+=> 84 "Front panel" transform=[17.5717,0,0,17.5717,338.32,531.2525] width=90.52939840000015 height=17.5717
+   85 "" transform=[10.2502,0,0,10.2502,338.32,504.0857] width=0 height=0
+   86 "Knit (29) 39 (39) 43 (53) rows in stockinette stitch" transform=[10.2502,0,0,10.2502,338.32,504.0857] width=226.42589298000038 height=10.2502
+   87 "" transform=[10.2502,0,0,10.2502,338.32,490.4221834] width=0 height=0
+----
+MATCH 6 90 "Each row of the front panel will have (96) 102 (109)" transform=[10.2502,0,0,10.2502,338.32,458.5953124] width=223.06485240000035 height=10.2502
+SURROUNDING:
+   87 "" transform=[10.2502,0,0,10.2502,338.32,490.4221834] width=0 height=0
+   88 "(K on RS, P on WS), approximately (3.75 in) 5 in (5 in)" transform=[10.2502,0,0,10.2502,338.32,490.4221834] width=230.0862394000004 height=10.2502
+   89 "5.5 in (6.75 in) in length." transform=[10.2502,0,0,10.2502,338.32,476.7586668] width=103.38351720000041 height=10.2502
+=> 90 "Each row of the front panel will have (96) 102 (109)" transform=[10.2502,0,0,10.2502,338.32,458.5953124] width=223.06485240000035 height=10.2502
+   91 "126 (135) sts per row." transform=[10.2502,0,0,10.2502,338.32,444.93179580000003] width=92.4978048000003 height=10.2502
+   92 "" transform=[17.5717,0,0,17.5717,338.32,405.8322] width=0 height=0
+   93 "Front panel sleeve decreases" transform=[17.5717,0,0,17.5717,338.32,405.8322] width=219.2421009 height=17.5717
+----
+MATCH 6 93 "Front panel sleeve decreases" transform=[17.5717,0,0,17.5717,338.32,405.8322] width=219.2421009 height=17.5717
+SURROUNDING:
+   90 "Each row of the front panel will have (96) 102 (109)" transform=[10.2502,0,0,10.2502,338.32,458.5953124] width=223.06485240000035 height=10.2502
+   91 "126 (135) sts per row." transform=[10.2502,0,0,10.2502,338.32,444.93179580000003] width=92.4978048000003 height=10.2502
+   92 "" transform=[17.5717,0,0,17.5717,338.32,405.8322] width=0 height=0
+=> 93 "Front panel sleeve decreases" transform=[17.5717,0,0,17.5717,338.32,405.8322] width=219.2421009 height=17.5717
+   94 "" transform=[10.2502,0,0,10.2502,338.32,378.6653] width=0 height=0
+   95 "You will now begin decreasing at each outer edge of" transform=[10.2502,0,0,10.2502,338.32,378.6653] width=235.58034660000055 height=10.2502
+   96 "each row to shape the sleeves slightly." transform=[10.2502,0,0,10.2502,338.32,365.0017834] width=173.1053776000007 height=10.2502
+----
+MATCH 6 105 "Purl across (96) 102 (109) 126 (135) sts." transform=[10.2502,0,0,10.2502,399.6981976000002,301.34804140000006] width=170.00981720000016 height=10.2502
+SURROUNDING:
+   102 "" transform=[10.2502,0,0,10.2502,338.32,301.34804140000006] width=0 height=0
+   103 "Row 2 (WS):" transform=[10.2502,0,0,10.2502,338.32,301.34804140000006] width=57.02186260000018 height=10.2502
+   104 " " transform=[10.2502,0,0,10.2502,395.3418626000002,301.34804140000006] width=0.42500000000000016 height=0
+=> 105 "Purl across (96) 102 (109) 126 (135) sts." transform=[10.2502,0,0,10.2502,399.6981976000002,301.34804140000006] width=170.00981720000016 height=10.2502
+   106 "" transform=[10.2502,0,0,10.2502,338.32,283.18468700000005] width=0 height=0
+   107 "Begin sleeve shaping: Decrease 1 st at each outer" transform=[10.2502,0,0,10.2502,338.32,283.18468700000005] width=221.14806500000054 height=10.2502
+   108 "edge (2 sts total per row) on every RS and WS row." transform=[10.2502,0,0,10.2502,338.32,269.5211704000001] width=229.7684832000005 height=10.2502
+----
+PAGE 7 height 792 width 612 items 102
+MATCH 7 34 "Each row of the back panel will have (96) 102 (109)" transform=[10.2502,0,0,10.2502,35.99999999999997,376.35395800000003] width=222.23458620000002 height=10.2502
+SURROUNDING:
+   31 "" transform=[10.2502,0,0,10.2502,35.99999999999997,408.180829] width=0 height=0
+   32 "(K on RS, P on WS), approximately (3.5 in) 5 in (5 in)" transform=[10.2502,0,0,10.2502,35.99999999999997,408.180829] width=224.78688599999995 height=10.2502
+   33 "5.5 in (6.5 in) in length." transform=[10.2502,0,0,10.2502,35.99999999999997,394.51731240000004] width=98.08416379999996 height=10.2502
+=> 34 "Each row of the back panel will have (96) 102 (109)" transform=[10.2502,0,0,10.2502,35.99999999999997,376.35395800000003] width=222.23458620000002 height=10.2502
+   35 "126 (135) sts per row." transform=[10.2502,0,0,10.2502,35.99999999999997,362.69044140000005] width=92.49780479999997 height=10.2502
+   36 "" transform=[17.5717,0,0,17.5717,36,323.5873] width=0 height=0
+   37 "Back panel sleeve decreases" transform=[17.5717,0,0,17.5717,36,323.5873] width=213.4082964999998 height=17.5717
+----
+MATCH 7 49 "Purl across (96) 102 (109) 126 (135) sts." transform=[10.2502,0,0,10.2502,97.37819759999995,219.10314139999997] width=170.00981720000013 height=10.2502
+SURROUNDING:
+   46 "" transform=[10.2502,0,0,10.2502,36,219.10314139999997] width=0 height=0
+   47 "Row 2 (WS):" transform=[10.2502,0,0,10.2502,36,219.10314139999997] width=57.02186259999998 height=10.2502
+   48 " " transform=[10.2502,0,0,10.2502,93.02186259999996,219.10314139999997] width=0.42499999999999877 height=0
+=> 49 "Purl across (96) 102 (109) 126 (135) sts." transform=[10.2502,0,0,10.2502,97.37819759999995,219.10314139999997] width=170.00981720000013 height=10.2502
+   50 "" transform=[10.2502,0,0,10.2502,36,200.93978699999997] width=0 height=0
+   51 "Begin sleeve shaping: Decrease 1 st at each outer" transform=[10.2502,0,0,10.2502,36,200.93978699999997] width=221.14806499999997 height=10.2502
+   52 "edge (2 sts total per row) on every RS and WS row." transform=[10.2502,0,0,10.2502,36,187.27627039999996] width=229.76848320000002 height=10.2502
+----
+MATCH 7 72 "off as the front panel. We will now invert the top, then" transform=[10.2502,0,0,10.2502,338.3193988,624.6523044] width=234.98686002000028 height=10.2502
+SURROUNDING:
+   69 "Bind off" transform=[10.2502,0,0,10.2502,338.3193988,638.315821] width=35.97820200000015 height=10.2502
+   70 " " transform=[10.2502,0,0,10.2502,374.2976008000001,638.315821] width=0.19800000000000206 height=0
+   71 "all remaining stitches using the same bind" transform=[10.2502,0,0,10.2502,376.32714040000013,638.315821] width=182.49456080000033 height=10.2502
+=> 72 "off as the front panel. We will now invert the top, then" transform=[10.2502,0,0,10.2502,338.3193988,624.6523044] width=234.98686002000028 height=10.2502
+   73 "align and attach the panels together and seam from" transform=[10.2502,0,0,10.2502,338.3193988,610.9887878000001] width=226.27316500000038 height=10.2502
+   74 "the outermost stitches to where the stitch markers" transform=[10.2502,0,0,10.2502,338.3193988,597.3252712000001] width=222.91109940000052 height=10.2502
+   75 "were in order to complete the sleeves." transform=[10.2502,0,0,10.2502,338.3193988,583.6617546000001] width=167.09876040000046 height=10.2502
+----
+PAGE 8 height 792 width 612 items 29
+PAGE 9 height 792 width 612 items 29

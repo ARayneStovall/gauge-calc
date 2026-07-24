@@ -5,10 +5,11 @@ import path from "path";
 import fs from "fs";
 import { rescaleCount } from "./rescale.js";
 import { prompting } from "./promptingClaude.js";
+const DEBUG = process.env.DEBUG === "1";
 
-export async function extractAndStamp(pdfBuffer: Buffer, knitterGauge: number) {
-    
-    
+export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number) {
+
+
     const require = createRequire(import.meta.url);
     const pdfjsDistPath = require.resolve("pdfjs-dist");
     const fontDataPath = path.join(path.resolve(pdfjsDistPath, "../../standard_fonts"), "/");
@@ -19,42 +20,54 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGauge: number) {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
     const pages = pdfDoc.getPages();
-    var currentPage = pages[1];
+    var currentPage = pages[0];
 
     if (currentPage === undefined) {
-        throw new Error ("page not found");
+        throw new Error("page not found");
     }
 
     var patternText = "";
-    var patternTextInfoArray: {text: string, offset: number}[] = [];
 
     const pdf = await getDocument({ data: uint8Array, standardFontDataUrl: fontDataPath, cMapUrl: cmapPath }).promise;
 
-    for (let i : number = 1; i <= pdf.numPages; i++) {
-        var page = await pdf.getPage(i);
-        currentPage = pages[i-1];
-        var textContent = await page.getTextContent();
+    const pageTextInfoArrays: Array<Array<{ text: string, offset: number }>> = [];
 
-        var pageText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        currentPage = pages[i - 1];
+        const textContent = await page.getTextContent();
+
+        let pageText = "";
+        const pageItemInfos: Array<{ text: string, offset: number }> = [];
+        const pageStartOffset = patternText.length;
+
         textContent.items.forEach((item) => {
             if ("str" in item) {
-                patternTextInfoArray.push({text: item.str, offset: patternText.length + pageText.length});
-                pageText += item.str;
+                const str = item.str;
+                const offset = pageStartOffset + pageText.length;
+                pageText += str + " ";
+                pageItemInfos.push({ text: str, offset });
             }
-        })
+        });
+
+        pageTextInfoArrays.push(pageItemInfos);
         patternText += pageText;
     }
 
     var patternResults = await prompting(patternText);
 
+    if (!patternResults || !patternResults.sections || !Array.isArray(patternResults.sections.sections)) {
+        throw new Error("Invalid parser output: missing sections");
+    }
+
     if (patternResults === null) {
-            throw new Error ("No pattern found.")
-        }
+        throw new Error("No pattern found.")
+    }
     var sectionBoundaries = patternResults.sections.sections.map(function (section) {
         return { name: section.name, start: patternText.indexOf(section.name) };
     });
 
-    sectionBoundaries.sort(function(a, b) { return a.start - b.start; })
+    sectionBoundaries.sort(function (a, b) { return a.start - b.start; })
 
     var sectionRanges = sectionBoundaries.map(function (section, index, array) {
         var nextSection = array[index + 1];
@@ -62,63 +75,121 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGauge: number) {
         return { name: section.name, start: section.start, end: end };
     });
 
-    var itemCounter = 0;
-
-    for (let i : number = 1; i <= pdf.numPages; i++) {
+    for (let i: number = 1; i <= pdf.numPages; i++) {
         var page = await pdf.getPage(i);
-        currentPage = pages[i-1];
+        currentPage = pages[i - 1];
         var textContent = await page.getTextContent();
-        
+
         var stsCnt = patternResults.stitches_per_4in;
+        var rowCnt = patternResults.rows_per_4in;
 
-        if (patternResults.stitches_per_4in != 0){
-            var gaugeInfo = patternResults.sections.sections.map(function(sections){return {ptrnCnt: stsCnt, knitterCnt: knitterGauge, numStsPtrn: sections.stitch_count, repeatMultiple: sections.repeat_multiple, sectionName: sections.name, type: "stitches"}});
+        if (stsCnt !== 0 || rowCnt !== 0) {
 
-            textContent.items.forEach((item) => {
-            var itemInfo = patternTextInfoArray[itemCounter];
-            if ("str" in item) {
-                var str = item.str;
-                itemCounter ++;
-                for (let i : number = 0; i < gaugeInfo.length; i++) {
-                    var target = gaugeInfo[i]
-                    if (target === undefined){
-                        throw new Error ("No gauge info.")
-                    }
 
-                    var matchingRange = sectionRanges.find(function (range) {
-                        if (target === undefined){
-                            throw new Error ("No gauge info.")
+            const gaugeInfoSts = patternResults.sections.sections.map((s: any) => ({
+                ptrnCnt: Number(stsCnt || 0),
+                knitterCnt: Number(knitterGaugeSts || 0),
+                numStsPtrn: Number(s.stitch_count ?? 0),
+                repeatMultiple: Number(s.repeat_multiple ?? 1) || 1,
+                sectionName: s.name ?? "",
+                type: "stitches"
+            }));
+
+            const gaugeInfoRows = patternResults.sections.sections.map((s: any) => ({
+                ptrnCnt: Number(rowCnt || 0),
+                knitterCnt: Number(knitterGaugeRow || 0),
+                numStsPtrn: Number(s.row_count ?? 0),
+                repeatMultiple: Number(s.row_repeat_multiple ?? 1) || 1,
+                sectionName: s.name ?? "",
+                type: "rows"
+            }));
+
+            const gaugeInfoArray = [...gaugeInfoSts, ...gaugeInfoRows];
+
+            const filteredGaugeInfo = gaugeInfoArray.filter(entry =>
+                entry.repeatMultiple !== 0 &&
+                entry.numStsPtrn !== 0 &&
+                !Number.isNaN(entry.numStsPtrn) &&
+                entry.sectionName
+            );
+
+            if (DEBUG) {
+                console.log({
+                    filteredCount: filteredGaugeInfo.length,
+                    sample: filteredGaugeInfo.slice(0, 3)
+                });
+            }
+
+
+            textContent.items.forEach((item, b) => {
+                const pageItemInfos = pageTextInfoArrays[i - 1] ?? [];;
+                const itemInfo = pageItemInfos[b];
+                if (!itemInfo) {
+                    if (DEBUG) console.warn("skip: no itemInfo for itemIndex", b);
+                    return;
+                }
+                if ("str" in item) {
+                    var str = item.str;
+                    for (let j: number = 0; j < filteredGaugeInfo.length; j++) {
+                        var target = filteredGaugeInfo[j]
+                        if (target === undefined) {
+                            if (DEBUG) console.warn("skip: no target at index", j);
+                            continue;
                         }
-                        return range.name === target.sectionName;
-                    });
+                        var sectionName = target.sectionName;
 
-                    if (matchingRange === undefined){
-                        throw new Error ("Matching range not found.")
-                    }
-                    if (itemInfo === undefined){
-                        throw new Error ("Item info range not found.")
-                    }
-
-                    if (str.includes(String(target.numStsPtrn)) && itemInfo.offset >= matchingRange.start && itemInfo.offset < matchingRange.end){
-                        if (currentPage === undefined) {
-                            throw new Error ("page not found");
+                        const matchingRange = sectionRanges.find(r => r.name === sectionName);
+                        if (!matchingRange) {
+                            if (DEBUG) console.warn("skip: no matchingRange for", target.sectionName);
+                            continue;
                         }
-                        console.log(item.str, item.transform);
-                        var substringXIndex = item.str.indexOf(String(target.numStsPtrn));
-                        var fontWidth = font.widthOfTextAtSize(item.str.substring(0, substringXIndex), item.transform[0]);
-                        var substringXPosition =  item.transform[4] + fontWidth;
 
-                        var stsRescaled = rescaleCount(target.ptrnCnt, target.knitterCnt, target.numStsPtrn, target.repeatMultiple, target.sectionName, target.type)
+                        if (pageItemInfos === undefined) {
+                            if (DEBUG) console.warn("no pageItemInfos for page", i);
+                            continue;
+                        }
 
-                        var rectangleWidth = font.widthOfTextAtSize(String(stsRescaled), item.transform[0]);
+                        if (str.includes(String(target.numStsPtrn)) &&
+                            itemInfo.offset >= matchingRange.start &&
+                            itemInfo.offset < matchingRange.end) {
+                            if (currentPage === undefined) {
+                                throw new Error("page not found");
+                            }
+                            if (DEBUG) {
+                                console.log(item.str, item.transform);
+                            }
 
-                        console.log(substringXPosition);
-                        currentPage.drawRectangle({x: substringXPosition-5, y: item.transform[5], width: rectangleWidth, height: item.transform[0], color: rgb(1,1,1)});
-                        currentPage.drawText(String(stsRescaled), {x: substringXPosition-5, y: item.transform[5], size: item.transform[0], font,  color: rgb(1, 0, 0) });
+                            var substringXIndex = item.str.indexOf(String(target.numStsPtrn));
+                            const fontSize = Math.hypot(item.transform[0], item.transform[1]) || Math.abs(item.transform[3]) || 10;
+                            const prefix = item.str.substring(0, substringXIndex);
+                            const originalNumberText = String(target.numStsPtrn);
+                            const pdfLibItemWidth = font.widthOfTextAtSize(item.str, fontSize);
+                            const widthRatio = pdfLibItemWidth > 0 ? item.width / pdfLibItemWidth : 1;
+                            const substringXPosition = item.transform[4] + font.widthOfTextAtSize(prefix, fontSize) * widthRatio;
+                            const originalNumberWidth = font.widthOfTextAtSize(originalNumberText, fontSize) * widthRatio;
+                            const pdfLibY = item.transform[5];
+                            const padding = Math.max(2, Math.round(fontSize * 0.15));
+                            var stsRescaled = rescaleCount(target.ptrnCnt, target.knitterCnt, target.numStsPtrn, target.repeatMultiple, target.sectionName, target.type);
+                            const stampedWidth = font.widthOfTextAtSize(String(stsRescaled), fontSize) * widthRatio;
+                            const centeredXPosition = substringXPosition + (originalNumberWidth - stampedWidth) / 2;
+                            if (DEBUG) {
+                                console.log('STAMP', {
+                                    page: i,
+                                    text: item.str,
+                                    original: target.numStsPtrn,
+                                    rescaled: stsRescaled,
+                                    section: target.sectionName,
+                                    repeatMultiple: target.repeatMultiple,
+                                    type: target.type,
+                                    widthRatio
+                                });
+                            }
+                            currentPage.drawRectangle({ x: centeredXPosition - padding, y: pdfLibY - padding, width: stampedWidth + padding * 2, height: fontSize + padding * 2, color: rgb(1, 1, 1) });
+                            currentPage.drawText(String(stsRescaled), { x: centeredXPosition, y: pdfLibY, size: fontSize, font, color: rgb(1, 0, 0) });
+                        }
                     }
                 }
-            }
-        })
+            })
         }
     }
 

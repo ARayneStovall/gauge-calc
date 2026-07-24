@@ -3,6 +3,8 @@ import { createRequire } from "node:module";
 import path from "path";
 import fs from "fs";
 
+const DEBUG = process.env.DEBUG === "1";
+
 const require = createRequire(import.meta.url);
 const pdfjsDistPath = require.resolve("pdfjs-dist");
 const fontDataPath = path.join(path.resolve(pdfjsDistPath, "../../standard_fonts"), "/");
