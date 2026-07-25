@@ -12,7 +12,9 @@ function App() {
   // while typing (e.g. "022") that only clears via the spinner arrows.
   const [knitterGaugeSts, setKnitterGaugeSts] = useState('');
   const [knitterGaugeRow, setKnitterGaugeRow] = useState('');
-  const [preferredSize, setPreferredSize] = useState('3');
+  // Empty by default (not pre-filled "3") to match the gauge fields above —
+  // the backend already falls back to "3" when this is left blank.
+  const [preferredSize, setPreferredSize] = useState('');
 
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -109,7 +111,7 @@ function App() {
 
         <div className="field">
           <label htmlFor="size-input">Preferred size label</label>
-          <input id="size-input" type="text" value={preferredSize} onChange={handlePreferredSizeChange} />
+          <input id="size-input" type="text" placeholder="e.g. 3 or M" value={preferredSize} onChange={handlePreferredSizeChange} />
         </div>
 
         <button className="primary-button" onClick={handleSubmit} disabled={loading || pdfFile === null}>
