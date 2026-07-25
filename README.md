@@ -21,9 +21,10 @@ You'll need an `ANTHROPIC_API_KEY` set in your environment.
 **Backend:**
 ```
 npm install
-node server.js
+npm run build
+npm start
 ```
-Runs on `http://localhost:3001`.
+Runs on `http://localhost:3001`. (`npm run build` compiles the TypeScript in place; re-run it after editing backend source, or use your editor's TS watch/build task instead.)
 
 **Frontend** (separate terminal):
 ```
@@ -33,7 +34,7 @@ npm run dev
 ```
 Runs on `http://localhost:5173`.
 
-With both running, open the frontend in your browser, upload a pattern PDF, enter your gauge (and optionally a preferred size label or a manual stamp x-offset), and download the recalculated version.
+With both running, open the frontend in your browser, upload a pattern PDF, enter your gauge (and optionally a preferred size label), and download the recalculated version. (`stampDx`, a manual x-offset nudge for fine-tuning stamp position, is a backend/CLI-only knob — see [Testing against sample patterns](#testing-against-sample-patterns) — not exposed in the UI.)
 
 ## Deploying
 
@@ -41,10 +42,10 @@ The frontend (static) and backend (needs a running Node process + your Anthropic
 
 **Backend — [Render](https://render.com):**
 1. New → Blueprint, connect this repo. Render will read `render.yaml` and set up the build (`npm install --include=dev && npm run build`) and start (`npm start`) commands automatically.
-2. When prompted for env vars, set `ANTHROPIC_API_KEY` (required) and `FRONTEND_ORIGIN` (optional — the deployed frontend's URL, once you have it, to restrict CORS instead of allowing any origin).
+2. When prompted for env vars, set `ANTHROPIC_API_KEY` (required) and `FRONTEND_ORIGIN` (optional — the deployed frontend's URL, once you have it, to restrict CORS instead of allowing any origin). When set, CORS also automatically allows any Vercel preview URL for this same project (matched by a `gaugecalculator-*.vercel.app` pattern in `server.ts`) so preview deployments can hit the same shared backend — update that pattern if you rename the Vercel project.
 3. Note the resulting service URL (`https://<name>.onrender.com`) — the frontend needs it.
 
-Free tier caveat: the service spins down after inactivity, so the first request after idle time takes 10–30s to wake up before PDF processing even starts.
+Free tier caveats: the service spins down after inactivity, so the first request after idle time takes 10–30s to wake up before PDF processing even starts; uploads are also capped at 20MB (`server.ts`), since the whole file is buffered into memory before processing.
 
 **Frontend — [Vercel](https://vercel.com):**
 1. New Project, import this repo, set **Root Directory** to `frontend`. Vercel auto-detects the Vite build.
