@@ -2,7 +2,10 @@ import express from "express";
 import { extractAndStamp } from "./extractStampText.js";
 import cors from "cors";
 import multer from "multer";
-const upload = multer({ storage: multer.memoryStorage() });
+// Uploaded files are buffered fully into memory (see extractAndStamp), so an
+// unbounded upload could exhaust the host's RAM; 20MB comfortably covers the
+// largest sample patterns (~11MB) with headroom.
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const app = express();
 // FRONTEND_ORIGIN restricts CORS to the production frontend URL, plus any
@@ -48,7 +51,19 @@ app.post("/api/rescale", upload.single("pdf"), async function (req, res) {
         res.set("Content-Type", "application/pdf");
         res.send(pdfBytes);
     } catch (error) {
+        console.error("Error processing pattern:", error);
         res.status(500).send("Error processing pattern");
     }
+});
+
+// Catches errors thrown by upload.single() itself (e.g. multer's file-size
+// limit), which happen before the route handler's own try/catch runs.
+app.use(function (err: unknown, req: express.Request, res: express.Response, next: express.NextFunction) {
+    if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        res.status(413).send("PDF is too large (20MB max)");
+        return;
+    }
+    console.error("Unhandled error:", err);
+    res.status(500).send("Unexpected server error");
 });
 
