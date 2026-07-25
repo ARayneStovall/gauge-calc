@@ -7,8 +7,11 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 function App() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
-  const [knitterGaugeSts, setKnitterGaugeSts] = useState(0);
-  const [knitterGaugeRow, setKnitterGaugeRow] = useState(0);
+  // Tracked as strings (not numbers) starting empty rather than "0" — a
+  // controlled number input defaulting to 0 shows a lingering leading zero
+  // while typing (e.g. "022") that only clears via the spinner arrows.
+  const [knitterGaugeSts, setKnitterGaugeSts] = useState('');
+  const [knitterGaugeRow, setKnitterGaugeRow] = useState('');
   const [preferredSize, setPreferredSize] = useState('3');
 
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
@@ -21,11 +24,11 @@ function App() {
   }
 
   function handleStsChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setKnitterGaugeSts(Number(event.target.value));
+    setKnitterGaugeSts(event.target.value);
   }
 
   function handleRowChange(event: React.ChangeEvent<HTMLInputElement>) {
-    setKnitterGaugeRow(Number(event.target.value));
+    setKnitterGaugeRow(event.target.value);
   }
 
   function handlePreferredSizeChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -96,11 +99,11 @@ function App() {
         <div className="field-row">
           <div className="field">
             <label htmlFor="sts-input">Stitches / 4in</label>
-            <input id="sts-input" type="number" value={knitterGaugeSts} onChange={handleStsChange} />
+            <input id="sts-input" type="number" placeholder="e.g. 22" value={knitterGaugeSts} onChange={handleStsChange} />
           </div>
           <div className="field">
             <label htmlFor="row-input">Rows / 4in</label>
-            <input id="row-input" type="number" value={knitterGaugeRow} onChange={handleRowChange} />
+            <input id="row-input" type="number" placeholder="e.g. 30" value={knitterGaugeRow} onChange={handleRowChange} />
           </div>
         </div>
 
