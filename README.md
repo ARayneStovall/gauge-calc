@@ -1,6 +1,6 @@
 # gaugeCalc
 
-A tool for knitters and crocheters: upload a PDF pattern and your actual gauge, get back the same PDF with stitch and row counts recalculated for your gauge — stamped directly over the original numbers, so you can still see what the pattern originally said.
+A tool for knitters and crocheters: upload a PDF pattern and your actual gauge, get back the same PDF with stitch and row counts recalculated for your gauge — stamped directly over the original numbers. The original number is painted over with a white rectangle and the recalculated one is drawn on top in red, so the original isn't recoverable from the output PDF.
 
 ## How it works
 
@@ -8,6 +8,13 @@ A tool for knitters and crocheters: upload a PDF pattern and your actual gauge, 
 2. **Parsing** — the raw pattern text is sent to Claude, which extracts structured data: the pattern's gauge, and each section (ribbing, front panel, sleeve decreases, etc.) with its stitch count, row count, and repeat constraints. If the pattern lists multiple sizes, a preferred size label can be passed through so Claude extracts counts for that size specifically (falling back to the middle/nearest size if the label isn't found).
 3. **Rescaling** — deterministic math (no LLM involved) converts each section's stitch/row counts from the pattern's gauge to the knitter's actual gauge, rounding up to the nearest valid repeat.
 4. **Stamping** — the recalculated numbers are drawn back onto the original PDF (`pdf-lib`) at the same position as the original numbers. Each number is matched as a whole number (not a substring) within its own section's text range, so a repeated number (e.g. the same stitch count used in both the front and back panel) only gets replaced within its own section, and a short count like "1" doesn't get matched inside unrelated numbers like "11" or "51". Positioning is auto-centered per page using the median glyph-width scale and offset across that page's matches, with an optional manual x-offset nudge for fine-tuning.
+
+## Known limitations
+
+- **Increases/decreases aren't rescaled.** The rescaling math (`rescale.ts`) converts a section's flat stitch/row count and rounds up to the nearest repeat multiple — it doesn't detect or adjust shaping (increases/decreases) within a section, so patterns that rely on those may need manual adjustment after rescaling.
+- **Stamp alignment can drift on multi-column patterns.** Centering uses one median glyph-width scale/offset per page, which assumes a fairly uniform single-column layout; multi-column patterns (e.g. size charts side by side) can throw that off.
+- **Rare residual false-positive matches.** Numbers are matched as whole numbers within their own section's text range (not substrings), which fixed most false-positive stamping. A narrower edge case remains: if a stitch count is legitimately repeated inside the pattern author's own worked-example math prose, it can still get matched and stamped more than once.
+- **LLM parsing isn't perfectly deterministic.** Each run sends the pattern text to Claude fresh, so two separate runs (e.g. `validate` diagnostics vs. an actual `batch` stamp run) can occasionally return slightly different section boundaries or values. Diagnostics from one run aren't a guaranteed ground truth to diff against a different run's output.
 
 ## Stack
 
