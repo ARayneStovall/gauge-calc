@@ -1,0 +1,12 @@
+{
+  "sts": 20,
+  "row": 28,
+  "preferredSize": "3",
+  "stampDx": 0,
+  "repeat": 1,
+  "stampEveryRun": false,
+  "files": [
+    "Bow Pop Mittens",
+    { "file": "Petty_Harbour", "sts": 22, "row": 30, "repeat": 2 }
+  ]
+}
