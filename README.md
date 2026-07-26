@@ -104,12 +104,12 @@ Outputs are clean and separated by file, not by timestamp: each pattern always w
   "files": null
 }
 ```
-`files: null` tests every sample pattern with the settings above. To test specific patterns, or give some of them different settings, set `files` to a list mixing plain names (inherit the settings above) and objects (override just that file):
+`files: null` tests every sample pattern with the settings above. To test specific patterns, list their names in `files`; to give one of them different settings, add an entry under `overrides` keyed by that same name (only the fields you name there override the top-level settings, everything else is inherited):
 ```json
-"files": [
-  "Bow Pop Mittens",
-  { "file": "Petty_Harbour", "sts": 22, "row": 30, "repeat": 5 }
-]
+"files": ["Bow Pop Mittens", "Petty_Harbour"],
+"overrides": {
+  "Petty_Harbour": { "sts": 22, "row": 30, "repeat": 5 }
+}
 ```
 
 ```

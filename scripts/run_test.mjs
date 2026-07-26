@@ -41,20 +41,20 @@ async function loadConfig(configPath) {
 }
 
 // Merge order (lowest to highest precedence): hardcoded DEFAULTS, the
-// config file's top-level fields, CLI flags. Each entry in config.files can
+// config file's top-level fields, CLI flags. config.overrides[filename] can
 // further override any of these for just that one file.
 function resolveFileSpecs(cliOpts, configData) {
   const base = { ...DEFAULTS, ...(configData || {}), ...cliOpts };
   delete base.files;
+  delete base.overrides;
   delete base.configPath;
   delete base.clean;
 
   const rawFiles = cliOpts.files ?? configData?.files ?? null;
   if (!rawFiles) return { base, fileSpecs: null };
 
-  const fileSpecs = rawFiles.map(entry =>
-    typeof entry === "string" ? { ...base, file: entry } : { ...base, ...entry }
-  );
+  const overrides = configData?.overrides || {};
+  const fileSpecs = rawFiles.map(name => ({ ...base, ...(overrides[name] || {}), file: name }));
   return { base, fileSpecs };
 }
 
