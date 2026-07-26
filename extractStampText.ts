@@ -45,7 +45,6 @@ export interface StampDiagnostic {
     pdfLibY: number;
     finalX: number;
     pageAutoScale: number;
-    pageAutoDx: number;
     stampDx: number;
     offset: number;
 }
@@ -178,7 +177,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         // one of our target numbers as a whole number and falls within that
         // number's own section's character range, and record enough info to
         // draw a replacement for it. Drawing happens in a later pass once we
-        // know the page-wide scale/offset (see pageAutoScale/pageAutoDx).
+        // know the page-wide scale factor (see pageAutoScale).
         const candidates: Array<any> = [];
         const widthRatios: number[] = [];
 
@@ -233,47 +232,51 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         // A single scale factor for the whole page (median across every
         // candidate's per-item widthRatio) rather than each candidate using
         // its own — per-item ratios are noisy for short strings, so a page
-        // median gives a much more stable width estimate to center against.
+        // median gives a much more stable width estimate for how wide the
+        // replacement text will render.
         const pageAutoScale = widthRatios.length > 0 ? median(widthRatios) : 1;
 
-        // Estimate how far off our pdf-lib-based centering guess is from
-        // where pdfjs says the number actually sits (numberCenterPdfJs, based
-        // on the item's on-page width and the number's character position
-        // within it), and take the page-wide median of that error as a
-        // single correction (pageAutoDx) applied to every stamp on the page.
-        const desiredDxList: number[] = [];
+        // Locate where the original number's center actually sits on the
+        // page: split the item's true on-page width (item.width, as measured
+        // by pdfjs) by the *font-metric* fraction of the string that falls
+        // before and through the number, rather than a naive per-character
+        // fraction. A per-character split assumes every glyph is the same
+        // width, which badly misjudges position for bracket-heavy multi-size
+        // lists like "(192) 204 (218) 252 (270)" — parentheses are much
+        // narrower than digits, and the more sizes bracketed together, the
+        // worse a uniform-width assumption gets. Using actual glyph widths
+        // (pdf-lib's Helvetica metrics, a reasonable proxy for the embedded
+        // font's relative glyph proportions even when its absolute scale
+        // differs) keeps this accurate regardless of how dense the list is.
         for (const c of candidates) {
-            const totalChars = c.str.length || 1;
-            const prefixChars = c.prefix.length;
-            const numChars = c.originalNumberText.length;
-
-            const scaledPrefixWidth = font.widthOfTextAtSize(c.prefix, c.fontSize) * pageAutoScale;
-            const centeredXPosition = c.itemTransform[4] + scaledPrefixWidth + (font.widthOfTextAtSize(c.originalNumberText, c.fontSize) * pageAutoScale - c.stampedWidthRaw * pageAutoScale) / 2;
-
-            const numberCenterPdfJs = c.itemTransform[4] + c.itemWidth * ((prefixChars + numChars / 2) / totalChars);
-            const desiredDx = numberCenterPdfJs - centeredXPosition;
-            c.centeredXPosition = centeredXPosition;
+            const prefixWidthMetric = font.widthOfTextAtSize(c.prefix, c.fontSize);
+            const numberWidthMetric = font.widthOfTextAtSize(c.originalNumberText, c.fontSize);
+            const numberCenterFraction = c.pdfLibItemWidth > 0 ? (prefixWidthMetric + numberWidthMetric / 2) / c.pdfLibItemWidth : 0.5;
+            c.originalNumberCenterX = c.itemTransform[4] + c.itemWidth * numberCenterFraction;
             c.stampedWidth = c.stampedWidthRaw * pageAutoScale;
-            desiredDxList.push(desiredDx);
+            // The cover rectangle has to be at least as wide as whichever of
+            // the old/new number is wider, or a narrower replacement (e.g.
+            // "93" over "102") leaves a sliver of the original digit or
+            // parenthesis peeking out from behind it.
+            c.originalWidth = numberWidthMetric * pageAutoScale;
+            c.coverWidth = Math.max(c.originalWidth, c.stampedWidth);
         }
 
-        const pageAutoDx = median(desiredDxList);
+        if (DEBUG) console.log('PAGE_AUTO', { page: pageIndex, pageAutoScale, candidates: candidates.length });
 
-        if (DEBUG) console.log('PAGE_AUTO', { page: pageIndex, pageAutoScale, pageAutoDx, candidates: candidates.length });
-
-        // Second pass: now that pageAutoScale/pageAutoDx are known, actually
-        // paint over each original number with a white rectangle and draw
-        // the rescaled number in its place. `stampDx` is an optional manual
-        // nudge on top of the automatic centering, for cases where the auto
-        // estimate is still slightly off.
+        // Second pass: paint over each original number with a white
+        // rectangle and draw the rescaled number centered on it. `stampDx`
+        // is an optional manual nudge on top of the automatic centering, for
+        // cases where the auto estimate is still slightly off.
         for (const c of candidates) {
-            const finalX = c.centeredXPosition + pageAutoDx + (stampDx || 0);
+            const centerX = c.originalNumberCenterX + (stampDx || 0);
+            const finalX = centerX - c.stampedWidth / 2;
             const fontSizeAdjusted = c.fontSize;
             const padding = Math.max(2, Math.round(fontSizeAdjusted * 0.15));
             if (DEBUG) {
-                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, pageAutoDx, finalX, fontSizeAdjusted });
+                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, finalX, fontSizeAdjusted });
             }
-            currentPage.drawRectangle({ x: finalX - padding, y: c.pdfLibY - padding, width: c.stampedWidth + padding * 2, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
+            currentPage.drawRectangle({ x: centerX - c.coverWidth / 2 - padding, y: c.pdfLibY - padding, width: c.coverWidth + padding * 2, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
             currentPage.drawText(String(c.stsRescaled), { x: finalX, y: c.pdfLibY, size: fontSizeAdjusted, font, color: rgb(1, 0, 0) });
         }
     }
@@ -414,6 +417,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
                     originalNumberText,
                     fontSize,
                     widthRatio,
+                    pdfLibItemWidth,
                     pdfLibY,
                     stsRescaled,
                     stampedWidthRaw,
@@ -428,24 +432,19 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
 
         const pageAutoScale = widthRatios.length > 0 ? median(widthRatios) : 1;
 
-        const desiredDxList: number[] = [];
+        // See extractAndStamp for why this uses a font-metric fraction of
+        // the item's true on-page width rather than a per-character split.
         for (const c of candidates) {
-            const totalChars = c.text.length || 1;
-            const prefixChars = c.prefix.length;
-            const numChars = c.originalNumberText.length;
-            const scaledPrefixWidth = font.widthOfTextAtSize(c.prefix, c.fontSize) * pageAutoScale;
-            const centeredXPosition = c.itemTransform[4] + scaledPrefixWidth + (font.widthOfTextAtSize(c.originalNumberText, c.fontSize) * pageAutoScale - c.stampedWidthRaw * pageAutoScale) / 2;
-            const numberCenterPdfJs = c.itemTransform[4] + c.itemWidth * ((prefixChars + numChars / 2) / totalChars);
-            const desiredDx = numberCenterPdfJs - centeredXPosition;
-            c.centeredXPosition = centeredXPosition;
+            const prefixWidthMetric = font.widthOfTextAtSize(c.prefix, c.fontSize);
+            const numberWidthMetric = font.widthOfTextAtSize(c.originalNumberText, c.fontSize);
+            const numberCenterFraction = c.pdfLibItemWidth > 0 ? (prefixWidthMetric + numberWidthMetric / 2) / c.pdfLibItemWidth : 0.5;
+            c.originalNumberCenterX = c.itemTransform[4] + c.itemWidth * numberCenterFraction;
             c.stampedWidth = c.stampedWidthRaw * pageAutoScale;
-            desiredDxList.push(desiredDx);
         }
 
-        const pageAutoDx = median(desiredDxList);
-
         for (const c of candidates) {
-            const finalX = c.centeredXPosition + pageAutoDx + stampDx;
+            const centerX = c.originalNumberCenterX + stampDx;
+            const finalX = centerX - c.stampedWidth / 2;
             diagnostics.push({
                 page: pageIndex,
                 text: c.text,
@@ -459,7 +458,6 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
                 pdfLibY: c.pdfLibY,
                 finalX,
                 pageAutoScale,
-                pageAutoDx,
                 stampDx,
                 offset: c.offset
             });
