@@ -58,6 +58,23 @@ function resolveFileSpecs(cliOpts, configData) {
   return { base, fileSpecs };
 }
 
+// "2026-07-26-01", "2026-07-26-02", ... — resets to 01 each new day, and
+// picks up from whatever's already there rather than a fixed run count, so
+// a --clean in between (or a folder deleted by hand) doesn't collide.
+async function nextRunFolderName(testRunsDir) {
+  const date = new Date().toISOString().slice(0, 10);
+  let existing = [];
+  try {
+    existing = await fs.readdir(testRunsDir);
+  } catch {
+    // testRuns/ doesn't exist yet
+  }
+  const pattern = new RegExp(`^${date}-(\\d+)$`);
+  const usedNumbers = existing.map(name => Number(pattern.exec(name)?.[1] ?? 0));
+  const next = Math.max(0, ...usedNumbers) + 1;
+  return `${date}-${String(next).padStart(2, "0")}`;
+}
+
 function resolveTargetFiles(allFiles, want) {
   const exact = allFiles.find(f => f.toLowerCase() === want.toLowerCase());
   if (exact) return [exact];
@@ -153,10 +170,11 @@ async function run() {
     console.log("Cleared testRuns/");
   }
 
-  // Each invocation gets its own dated folder, so successive test runs
-  // build up a history in testRuns/ instead of overwriting each other.
-  const timestamp = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
-  const runDir = path.join(testRunsDir, timestamp);
+  // Each invocation gets its own dated folder (every file tested in this
+  // run shares it), so successive test runs build up a history in
+  // testRuns/ instead of overwriting each other.
+  const runName = await nextRunFolderName(testRunsDir);
+  const runDir = path.join(testRunsDir, runName);
   await fs.mkdir(runDir, { recursive: true });
 
   const allFiles = (await fs.readdir(sampleDir)).filter(f => f.toLowerCase().endsWith(".pdf"));
