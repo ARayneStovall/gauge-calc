@@ -41,20 +41,26 @@ async function loadConfig(configPath) {
 }
 
 // Merge order (lowest to highest precedence): hardcoded DEFAULTS, the
-// config file's top-level fields, CLI flags. config.overrides[filename] can
-// further override any of these for just that one file.
+// config file's top-level fields, config.overrides[filename] for that one
+// file, then CLI flags — CLI always wins, even over a per-file override,
+// since it's the most explicit, in-the-moment thing the user typed.
 function resolveFileSpecs(cliOpts, configData) {
-  const base = { ...DEFAULTS, ...(configData || {}), ...cliOpts };
-  delete base.files;
-  delete base.overrides;
-  delete base.configPath;
-  delete base.clean;
+  const configDefaults = { ...(configData || {}) };
+  delete configDefaults.files;
+  delete configDefaults.overrides;
+
+  const cliOverrides = { ...cliOpts };
+  delete cliOverrides.files;
+  delete cliOverrides.configPath;
+  delete cliOverrides.clean;
+
+  const base = { ...DEFAULTS, ...configDefaults, ...cliOverrides };
 
   const rawFiles = cliOpts.files ?? configData?.files ?? null;
   if (!rawFiles) return { base, fileSpecs: null };
 
   const overrides = configData?.overrides || {};
-  const fileSpecs = rawFiles.map(name => ({ ...base, ...(overrides[name] || {}), file: name }));
+  const fileSpecs = rawFiles.map(name => ({ ...DEFAULTS, ...configDefaults, ...(overrides[name] || {}), ...cliOverrides, file: name }));
   return { base, fileSpecs };
 }
 

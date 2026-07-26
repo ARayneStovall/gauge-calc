@@ -27,7 +27,8 @@ export async function prompting(context: string, preferredSizeLabel: string = "3
     });
     const response = await client.messages.parse({
         model: "claude-haiku-4-5",
-        max_tokens: 500,
+        max_tokens: 2000,
+        temperature: 0,
         system: [
             {
                 type: "text",
