@@ -92,7 +92,7 @@ function compareRuns(runSummaries) {
   return differences;
 }
 
-async function testOneFile(pdfName, spec, allFiles) {
+async function testOneFile(pdfName, spec, allFiles, runDir) {
   const matches = resolveTargetFiles(allFiles, spec.file);
   if (matches.length === 0) {
     console.error(`No sample PDF matches "${spec.file}"`);
@@ -101,9 +101,7 @@ async function testOneFile(pdfName, spec, allFiles) {
 
   const file = matches[0];
   const base = file.replace(/\.pdf$/i, "");
-  // No timestamp in the path: each file always writes to the same folder,
-  // so re-running overwrites the previous result instead of piling up.
-  const fileDir = path.join(testRunsDir, base);
+  const fileDir = path.join(runDir, base);
   await fs.mkdir(fileDir, { recursive: true });
   const data = await fs.readFile(path.join(sampleDir, file));
 
@@ -154,18 +152,23 @@ async function run() {
     await fs.rm(testRunsDir, { recursive: true, force: true });
     console.log("Cleared testRuns/");
   }
-  await fs.mkdir(testRunsDir, { recursive: true });
+
+  // Each invocation gets its own dated folder, so successive test runs
+  // build up a history in testRuns/ instead of overwriting each other.
+  const timestamp = new Date().toISOString().replace(/:/g, "-").replace(/\..+/, "");
+  const runDir = path.join(testRunsDir, timestamp);
+  await fs.mkdir(runDir, { recursive: true });
 
   const allFiles = (await fs.readdir(sampleDir)).filter(f => f.toLowerCase().endsWith(".pdf"));
   const specs = fileSpecs ?? allFiles.map(file => ({ ...base, file }));
 
   const results = [];
   for (const spec of specs) {
-    results.push(await testOneFile(spec.file, spec, allFiles));
+    results.push(await testOneFile(spec.file, spec, allFiles, runDir));
   }
 
-  await fs.writeFile(path.join(testRunsDir, "summary.json"), JSON.stringify({ results }, null, 2));
-  console.log(`\nFull results in ${testRunsDir}/ (see summary.json for the overview, each file's own folder for its runs)`);
+  await fs.writeFile(path.join(runDir, "summary.json"), JSON.stringify({ results }, null, 2));
+  console.log(`\nFull results in ${runDir}/ (see summary.json for the overview, each file's own folder for its runs)`);
 }
 
 run().catch(err => {

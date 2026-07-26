@@ -90,7 +90,7 @@ npm run test:patterns -- --clean
 ```
 Runs one or more specific patterns (matched by exact or partial filename) with your own gauge/size/offset, `--repeat N` times each. Reads `test.config.json` at the repo root by default (edit it directly instead of typing flags every time — see below), or point at a different file with `--config`; any CLI flag passed overrides the config for that run. When `repeat` is greater than 1, it also diffs each section's original/rescaled numbers across runs and flags any that differ — since `prompting()` hits Claude fresh every call (see the non-determinism note above), this is how to check whether a given pattern parses consistently before trusting a one-off result.
 
-Outputs are clean and separated by file, not by timestamp: each pattern always writes to the same `testRuns/<file>/` folder (`run-N-diagnostics.json` per repeat, `run-1-stamped.pdf` for the first run — pass `stampEveryRun: true` to write one for every repeat), so re-running overwrites the previous result instead of piling up. `testRuns/summary.json` gives the overview across every file tested; `--clean` wipes the whole `testRuns/` folder first if you want a blank slate. `testRuns/` is gitignored.
+Each invocation writes to its own dated folder — `testRuns/<timestamp>/<file>/` (`run-N-diagnostics.json` per repeat, `run-1-stamped.pdf` for the first run — pass `stampEveryRun: true` to write one for every repeat) — so successive test runs build up a history instead of overwriting each other. `testRuns/<timestamp>/summary.json` gives the overview for that invocation; `--clean` wipes the whole `testRuns/` folder if you want to clear the history out. `testRuns/` is gitignored.
 
 `test.config.json` accepts:
 ```json
