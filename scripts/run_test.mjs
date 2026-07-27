@@ -115,6 +115,34 @@ function compareRuns(runSummaries) {
   return differences;
 }
 
+// Only files run with repeat > 1 actually got a consistency check — a
+// repeat: 1 file is reported separately so it doesn't read as "consistent"
+// when it was really just never checked.
+function buildInconsistencyReport(results) {
+  const checked = results.filter(r => r.spec && r.spec.repeat > 1);
+  const unchecked = results.filter(r => !r.spec || !(r.spec.repeat > 1));
+  const inconsistent = checked.filter(r => r.differences && r.differences.length > 0);
+
+  const lines = [];
+  lines.push(`${checked.length} file(s) checked for consistency across repeats, ${inconsistent.length} inconsistent.`);
+  if (unchecked.length > 0) {
+    lines.push(`Not checked (ran with repeat: 1): ${unchecked.map(r => r.file).join(", ")}`);
+  }
+  lines.push("");
+
+  if (inconsistent.length === 0) {
+    if (checked.length > 0) lines.push("All checked files were consistent across their repeats.");
+  } else {
+    for (const r of inconsistent) {
+      lines.push(`${r.file} (${r.spec.repeat} repeats):`);
+      for (const d of r.differences) lines.push(`  ${d.key}: ${d.signatures.join(" | ")}`);
+      lines.push("");
+    }
+  }
+
+  return lines.join("\n");
+}
+
 async function testOneFile(pdfName, spec, allFiles, runDir) {
   const matches = resolveTargetFiles(allFiles, spec.file);
   if (matches.length === 0) {
@@ -192,7 +220,11 @@ async function run() {
   }
 
   await fs.writeFile(path.join(runDir, "summary.json"), JSON.stringify({ results }, null, 2));
-  console.log(`\nFull results in ${runDir}/ (see summary.json for the overview, each file's own folder for its runs)`);
+
+  const inconsistencyReport = buildInconsistencyReport(results);
+  await fs.writeFile(path.join(runDir, "inconsistencies.txt"), inconsistencyReport);
+
+  console.log(`\nFull results in ${runDir}/ (see summary.json for the overview, inconsistencies.txt for a flat list of every inconsistency found, each file's own folder for its runs)`);
 }
 
 run().catch(err => {
