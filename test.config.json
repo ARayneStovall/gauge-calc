@@ -3,10 +3,11 @@
   "row": 28,
   "preferredSize": "3",
   "stampDx": 0,
-  "repeat": 1,
+  "repeat": 5,
   "stampEveryRun": false,
-  "files": ["Bow Pop Mittens", "Petty_Harbour"],
+  "files": ["Edinburgh_Seamless_Dog_Sweater_PDF", "Maddy - Top", "Intarsia - Sweater.pdf ", "Lavender field - T-shirt.pdf", "Petty_Harbour.pdf ", "Bow Pop Mittens.pdf", "Selia - Vest.pdf", "Summer Lotus - Blouse.pdf", "Tide Lace - Camisole.pdf", "Trio Crochet Top.pdf", "Twinlace - Skirt.pdf", "Utsubo_sock_Englishversion_v1.pdf"],
   "overrides": {
-    "Petty_Harbour": { "sts": 22, "row": 30, "repeat": 2 }
+    "Maddy - Top": { "sts": 22, "row": 30, "repeat": 5 },
+    "Intarsia - Sweater.pdf ": { "sts": 22, "row": 30, "repeat": 5 }
   }
 }
