@@ -1,4 +1,4 @@
-import { prompting } from "./promptingClaude.js";
+import { prompting } from "./promptingGemini.js";
 
 var context = `Respond with the number of stitches and rows per in in the gauge schema,  as  well as the stitch count for the size of each section the knitter wants to make. The knitter would like to make the third size. 
                 
