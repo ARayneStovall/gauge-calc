@@ -7,4 +7,7 @@
 /output/
 /diagnostics/
 /testRuns/
+/finetuneData/
+/test.config.json
 .DS_Store
+/.env

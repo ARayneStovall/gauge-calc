@@ -6,7 +6,7 @@ services:
     buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
-      - key: ANTHROPIC_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: FRONTEND_ORIGIN
         sync: false

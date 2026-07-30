@@ -9,7 +9,11 @@
     "start": "node server.js",
     "batch": "node scripts/run_batch.mjs",
     "validate": "node scripts/run_validation.mjs",
-    "test:patterns": "node scripts/run_test.mjs"
+    "test:patterns": "node scripts/run_test.mjs",
+    "finetune:dataset": "node scripts/build_finetune_dataset.mjs",
+    "finetune:review": "node scripts/build_review_sheets.mjs",
+    "finetune:build-tuning-file": "node scripts/build_gemini_tuning_file.mjs",
+    "finetune:submit": "node scripts/submit_gemini_tuning.mjs"
   },
   "keywords": [],
   "author": "",
@@ -23,7 +27,8 @@
     "typescript": "^7.0.2"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.113.0",
+    "@anthropic-ai/sdk": "^0.115.0",
+    "@google/genai": "^2.13.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "multer": "^2.2.0",

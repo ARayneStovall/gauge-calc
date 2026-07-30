@@ -1,5 +1,5 @@
 import express from "express";
-import { extractAndStamp } from "./extractStampText.js";
+import { extractAndStamp, InsufficientPatternTextError } from "./extractStampText.js";
 import cors from "cors";
 import multer from "multer";
 // Uploaded files are buffered fully into memory (see extractAndStamp), so an
@@ -52,6 +52,10 @@ app.post("/api/rescale", upload.single("pdf"), async function (req, res) {
         res.send(pdfBytes);
     } catch (error) {
         console.error("Error processing pattern:", error);
+        if (error instanceof InsufficientPatternTextError) {
+            res.status(422).send(error.message);
+            return;
+        }
         res.status(500).send("Error processing pattern");
     }
 });
