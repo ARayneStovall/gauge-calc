@@ -48,6 +48,37 @@ function findWholeNumberIndex(str: string, numberText: string): number {
     return match ? match.index : -1;
 }
 
+// Headings almost every pattern places after all real garment-construction
+// sections: an abbreviation key, finishing/grafting steps, a techniques or
+// notions list. These are real headings, but the model correctly never turns
+// them into GaugeSchema sections (there's no stitch/row count to extract
+// from them) — so nothing ever bounds a section's matching range against
+// them. Most obviously, the very last modeled section has no next heading to
+// bound it at all, and its range silently extends to the end of the
+// document. But it's not just the last section: a multi-column page layout
+// can make pdfjs's extracted text order not match the pattern's logical
+// construction order at all — e.g. one real sample pattern's "finishing:"
+// and "abbreviations:" back matter, positioned in a side column, extracts as
+// sitting textually *between* two sections that are knit back-to-back, so
+// even a section with a normal "next section" boundary can still have this
+// back matter land inside its range. That's a real problem either way: back
+// matter is dense with small numbers for entirely unrelated reasons (e.g.
+// "k2tog"/"p2tog" abbreviation definitions, "Round 2:"-style step labels),
+// and a section whose own shaping_interval/shaping_event_count happens to be
+// one of those same small numbers — extremely common, since these are
+// rarely more than single digits — will match and get stamped throughout the
+// back matter as if it were that section's own value.
+// Requiring the literal colon right after the word is what keeps this from
+// misfiring on an ordinary sentence that happens to use one of these words
+// in passing (e.g. "when finishing this round..." has no colon).
+const BACK_MATTER_HEADING_REGEX = /\b(?:abbreviations?|glossary|finishing|grafting|notions|techniques(?:\s+used)?|resources)\s*:/gi;
+
+function findBackMatterBoundary(patternText: string, searchFrom: number): number | null {
+    BACK_MATTER_HEADING_REGEX.lastIndex = searchFrom;
+    const match = BACK_MATTER_HEADING_REGEX.exec(patternText);
+    return match ? match.index : null;
+}
+
 // Builds the two shaping-cadence stamp targets for a section (its shaping
 // event count and its row/round interval), if it has any periodic shaping at
 // all (shaping_stitches_per_event !== 0). Unlike the plain stitches/rows
@@ -300,7 +331,11 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
     const rangeByIndex = new Map<number, { start: number; end: number }>();
     sortedBoundaries.forEach((section: any, i: number) => {
         const nextSection = sortedBoundaries[i + 1];
-        const end = (nextSection !== undefined) ? nextSection.start : patternText.length;
+        let end = (nextSection !== undefined) ? nextSection.start : patternText.length;
+        if (section.start !== -1) {
+            const backMatterStart = findBackMatterBoundary(patternText, section.start);
+            if (backMatterStart !== null) end = backMatterStart;
+        }
         rangeByIndex.set(section.index, { start: section.start, end });
     });
 
@@ -387,6 +422,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
                 const fontSize = Math.hypot(item.transform[0], item.transform[1]) || Math.abs(item.transform[3]) || 10;
                 const prefix = str.substring(0, substringIndex);
                 const originalNumberText = String(target.numStsPtrn);
+                const suffix = str.substring(substringIndex + originalNumberText.length);
                 // How much wider/narrower pdf-lib+Helvetica renders this same
                 // string than pdfjs reports it was actually rendered at in
                 // the source PDF (different font metrics/embedded font) —
@@ -411,6 +447,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
                     itemWidth: item.width,
                     str,
                     prefix,
+                    suffix,
                     substringIndex,
                     fontSize,
                     originalNumberText,
@@ -466,10 +503,24 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
             const finalX = centerX - c.stampedWidth / 2;
             const fontSizeAdjusted = c.fontSize;
             const padding = Math.max(2, Math.round(fontSizeAdjusted * 0.15));
+            // Full padding is generous enough to fully hide the original
+            // number's anti-aliased edges, but a number that sits with zero
+            // gap against adjacent punctuation — "[20", "(44)", "60," are all
+            // routine in these patterns' bracketed size lists — would have
+            // that same padding bleed into the neighboring character,
+            // visibly clipping it. Only use the full padding on a side whose
+            // immediately-adjacent character (within the same source text
+            // run) is whitespace or doesn't exist; a tight non-space
+            // neighbor gets just enough padding to cover anti-aliasing
+            // without encroaching on it.
+            const leftChar = c.prefix.length > 0 ? c.prefix[c.prefix.length - 1] : "";
+            const rightChar = c.suffix.length > 0 ? c.suffix[0] : "";
+            const leftPadding = leftChar === "" || /\s/.test(leftChar) ? padding : Math.min(padding, 1);
+            const rightPadding = rightChar === "" || /\s/.test(rightChar) ? padding : Math.min(padding, 1);
             if (DEBUG) {
-                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, finalX, fontSizeAdjusted });
+                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, finalX, fontSizeAdjusted, leftPadding, rightPadding });
             }
-            currentPage.drawRectangle({ x: centerX - c.coverWidth / 2 - padding, y: c.pdfLibY - padding, width: c.coverWidth + padding * 2, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
+            currentPage.drawRectangle({ x: centerX - c.coverWidth / 2 - leftPadding, y: c.pdfLibY - padding, width: c.coverWidth + leftPadding + rightPadding, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
             currentPage.drawText(String(c.stsRescaled), { x: finalX, y: c.pdfLibY, size: fontSizeAdjusted, font, color: rgb(1, 0, 0) });
         }
     }
@@ -517,7 +568,11 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
     const rangeByIndex = new Map<number, { start: number; end: number }>();
     sortedBoundaries.forEach((section: any, i: number) => {
         const nextSection = sortedBoundaries[i + 1];
-        const end = nextSection !== undefined ? nextSection.start : patternText.length;
+        let end = nextSection !== undefined ? nextSection.start : patternText.length;
+        if (section.start !== -1) {
+            const backMatterStart = findBackMatterBoundary(patternText, section.start);
+            if (backMatterStart !== null) end = backMatterStart;
+        }
         rangeByIndex.set(section.index, { start: section.start, end });
     });
 
@@ -586,6 +641,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
                 const fontSize = Math.hypot(item.transform[0], item.transform[1]) || Math.abs(item.transform[3]) || 10;
                 const prefix = str.substring(0, substringIndex);
                 const originalNumberText = String(target.numStsPtrn);
+                const suffix = str.substring(substringIndex + originalNumberText.length);
                 const pdfLibItemWidth = font.widthOfTextAtSize(str, fontSize);
                 const widthRatio = pdfLibItemWidth > 0 ? item.width / pdfLibItemWidth : 1;
                 widthRatios.push(widthRatio);
