@@ -307,7 +307,14 @@ export function findSizeSubsetClauses(patternText: string, resolved: ResolvedSiz
         const windowStart = match.index + match[0].length;
         const window = patternText.slice(windowStart, windowStart + 150);
         const tokens = extractSubsetTokens(window);
-        if (tokens.length < 2) continue;
+        // A single-label clause ("Size 5 only") is only accepted when "only"
+        // immediately follows that one label — without that check, a lone
+        // stray label-shaped token near any unrelated "size" mention could
+        // masquerade as a real restrictive clause. Multi-token clauses don't
+        // need this extra check since two-plus label-shaped tokens in a row
+        // right after "size(s)" is already a strong enough signal on its own.
+        const isConfirmedSingle = tokens.length === 1 && new RegExp(`^\\s*${tokens[0]}\\s*only\\b`, "i").test(window);
+        if (tokens.length < 2 && !isConfirmedSingle) continue;
 
         // Trim the header down to just the clause itself (stopping right
         // after "only" or at the next colon) rather than a fixed character
