@@ -407,7 +407,21 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
             const itemInfo = pageItemInfos[idx];
             if (!itemInfo) return;
             if (!("str" in item)) return;
-            const str = item.str;
+            // Some PDFs embed a font with a broken/incomplete glyph program
+            // (pdfjs logs "TT: undefined function: N" warnings for these) —
+            // pdfjs can't decode certain glyphs at all and substitutes the
+            // Unicode replacement character (U+FFFD, "�") instead, most
+            // often for ligatures like "tt". That string later gets passed
+            // to pdf-lib for width measurement (never actually drawn — only
+            // the rescaled number itself is drawn), and pdf-lib's WinAnsi
+            // encoding has no mapping for U+FFFD, throwing and aborting the
+            // whole stamping pass. Swapping it for a plain space (same
+            // length, so substringIndex/prefix math computed against the
+            // unmodified extractPatternText offsets below stays aligned)
+            // avoids the crash; the small width-measurement inaccuracy this
+            // introduces is negligible next to the alternative of the whole
+            // pattern failing to stamp at all.
+            const str = item.str.replace(/�/g, " ");
 
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
@@ -629,7 +643,21 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
             const itemInfo = pageItemInfos[idx];
             if (!itemInfo) return;
             if (!("str" in item)) return;
-            const str = item.str;
+            // Some PDFs embed a font with a broken/incomplete glyph program
+            // (pdfjs logs "TT: undefined function: N" warnings for these) —
+            // pdfjs can't decode certain glyphs at all and substitutes the
+            // Unicode replacement character (U+FFFD, "�") instead, most
+            // often for ligatures like "tt". That string later gets passed
+            // to pdf-lib for width measurement (never actually drawn — only
+            // the rescaled number itself is drawn), and pdf-lib's WinAnsi
+            // encoding has no mapping for U+FFFD, throwing and aborting the
+            // whole stamping pass. Swapping it for a plain space (same
+            // length, so substringIndex/prefix math computed against the
+            // unmodified extractPatternText offsets below stays aligned)
+            // avoids the crash; the small width-measurement inaccuracy this
+            // introduces is negligible next to the alternative of the whole
+            // pattern failing to stamp at all.
+            const str = item.str.replace(/�/g, " ");
 
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
