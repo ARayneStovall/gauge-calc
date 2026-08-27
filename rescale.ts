@@ -33,18 +33,24 @@ export function roundToNearestMultiple(numStsToKnitUnrounded: number, repeatMult
     return numStsToKnit;
 }
 
-// Recomputes a section's periodic shaping cadence (how many times a
-// decrease/increase round is worked, and how many rows/rounds apart each one
-// falls) to match its own already-rescaled endpoint stitch counts and row
-// count — rather than just rescaling the section's flat totals and leaving
-// the shaping instructions printed in the pattern text disconnected from
-// them. Callers pass in values that have already been through
-// rescaleCount(): newStartStitches (from rescaling shaping_start_stitch_count
-// with the section's own repeat_multiple), newEndStitches (the section's own
-// rescaled stitch_count), and newTotalRows (the section's own rescaled
-// row_count). stitchesPerEvent is never rescaled — it's a fixed technique
-// constant (e.g. a k2tog+ssk pair always removes exactly 2 sts) independent
-// of gauge.
+// Recomputes one shaping phase's cadence (how many times a decrease/increase
+// round is worked, and how many rows/rounds apart each one falls) to match
+// its own already-rescaled endpoint stitch counts and row span — rather than
+// just rescaling the flat totals and leaving the shaping instructions printed
+// in the pattern text disconnected from them. Callers pass in values that
+// have already been through rescaleCount(): newStartStitches (from rescaling
+// that phase's own start_stitch_count with the section's repeat_multiple),
+// newEndStitches (the next phase's rescaled start_stitch_count, or the
+// section's own rescaled stitch_count for the last phase), and newTotalRows
+// (that phase's own rescaled row span — see buildShapingTargets() in
+// extractStampText.ts for how a single-phase section's row span collapses to
+// just the section's row_count, and a multi-phase one doesn't).
+// stitchesPerEvent is never rescaled — it's a fixed technique constant (e.g.
+// a k2tog+ssk pair always removes exactly 2 sts) independent of gauge.
+// Called once per phase — a section with more than one distinct shaping rate
+// (e.g. a sock toe that decreases at one rate then a faster rate near the
+// end) calls this once per rate, chaining phase boundaries together; see
+// buildShapingTargets().
 //
 // Because newStartStitches/newEndStitches/newTotalRows were each already
 // independently rounded to their own repeat_multiple, eventCount *

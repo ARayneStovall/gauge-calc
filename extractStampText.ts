@@ -79,52 +79,75 @@ function findBackMatterBoundary(patternText: string, searchFrom: number): number
     return match ? match.index : null;
 }
 
-// Builds the two shaping-cadence stamp targets for a section (its shaping
-// event count and its row/round interval), if it has any periodic shaping at
-// all (shaping_stitches_per_event !== 0). Unlike the plain stitches/rows
-// targets, these need a *precomputed* replacement value — rescaleShaping()
-// depends on the section's own already-rescaled start/end stitch counts and
-// row count, not a simple ptrnCnt/knitterCnt ratio — so callers must use
-// `precomputedRescaled` instead of calling rescaleCount() for these two
-// target types. Shared by extractAndStamp and extractStampDiagnostics so the
-// shaping math itself isn't duplicated, even though the rest of each
-// function's stamping loop is (see the comments on sectionBoundaries there).
+// Builds the shaping-cadence stamp targets (event count + row/round interval
+// per phase) for a section, one pair per entry in section.shaping_phases.
+// Unlike the plain stitches/rows targets, these need a *precomputed*
+// replacement value — rescaleShaping() depends on the phase's own
+// already-rescaled start/end stitch counts and row span, not a simple
+// ptrnCnt/knitterCnt ratio — so callers must use `precomputedRescaled`
+// instead of calling rescaleCount() for these target types. Shared by
+// extractAndStamp and extractStampDiagnostics so the shaping math itself
+// isn't duplicated, even though the rest of each function's stamping loop is
+// (see the comments on sectionBoundaries there).
+//
+// A phase's own end stitch count isn't a field the model reports — it's
+// implicitly wherever the next phase starts, or the section's own final
+// stitch_count for the last phase — so phases are chained: phase i's end is
+// phase i+1's (rescaled) start. Likewise a phase's own row span isn't
+// reported directly (only the section's total row_count is); it's
+// approximated as that phase's own event_count * interval_rows (both already
+// read straight off the text for that phase) and rescaled with the row gauge
+// ratio. repeatMultiple is 1 for this derived row span — row_repeat_multiple
+// is documented as unrelated to shaping cadence, so it shouldn't apply here
+// either, same as it doesn't for the single-phase case this generalizes.
 function buildShapingTargets(section: any, index: number, stsCnt: number, knitterGaugeSts: number, rowCnt: number, knitterGaugeRow: number): Array<any> {
-    const stitchesPerEvent = Number(section.shaping_stitches_per_event ?? 0);
-    if (!stitchesPerEvent) return [];
+    const phases = Array.isArray(section.shaping_phases) ? section.shaping_phases : [];
+    if (phases.length === 0) return [];
 
     const repeatMultiple = Number(section.repeat_multiple ?? 1) || 1;
-    const rowRepeatMultiple = Number(section.row_repeat_multiple ?? 1) || 1;
     const sectionName = section.name ?? "";
+    const finalEndStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.stitch_count ?? 0), repeatMultiple, sectionName, "stitches");
 
-    const newStartStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.shaping_start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start");
-    const newEndStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.stitch_count ?? 0), repeatMultiple, sectionName, "stitches");
-    const newTotalRows = rescaleCount(rowCnt, knitterGaugeRow, Number(section.row_count ?? 0), rowRepeatMultiple, sectionName, "rows");
+    const targets: Array<any> = [];
+    phases.forEach((phase: any, phaseIndex: number) => {
+        const stitchesPerEvent = Number(phase.stitches_per_event ?? 0);
+        if (!stitchesPerEvent) return;
 
-    const { eventCount, intervalRows } = rescaleShaping(newStartStitches, newEndStitches, stitchesPerEvent, newTotalRows);
+        const newStartStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(phase.start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start");
+        const nextPhase = phases[phaseIndex + 1];
+        const newEndStitches = nextPhase
+            ? rescaleCount(stsCnt, knitterGaugeSts, Number(nextPhase.start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start")
+            : finalEndStitches;
 
-    return [
-        {
-            ptrnCnt: 0,
-            knitterCnt: 0,
-            numStsPtrn: Number(section.shaping_event_count ?? 0),
-            repeatMultiple: 1,
-            sectionName,
-            sectionIndex: index,
-            type: "shaping_event_count",
-            precomputedRescaled: eventCount
-        },
-        {
-            ptrnCnt: 0,
-            knitterCnt: 0,
-            numStsPtrn: Number(section.shaping_interval_rows ?? 0),
-            repeatMultiple: 1,
-            sectionName,
-            sectionIndex: index,
-            type: "shaping_interval",
-            precomputedRescaled: intervalRows
-        }
-    ];
+        const rawPhaseRows = Number(phase.event_count ?? 0) * Number(phase.interval_rows ?? 0);
+        const newPhaseRows = rescaleCount(rowCnt, knitterGaugeRow, rawPhaseRows, 1, sectionName, "shaping-phase-rows");
+
+        const { eventCount, intervalRows } = rescaleShaping(newStartStitches, newEndStitches, stitchesPerEvent, newPhaseRows);
+
+        targets.push(
+            {
+                ptrnCnt: 0,
+                knitterCnt: 0,
+                numStsPtrn: Number(phase.event_count ?? 0),
+                repeatMultiple: 1,
+                sectionName,
+                sectionIndex: index,
+                type: "shaping_event_count",
+                precomputedRescaled: eventCount
+            },
+            {
+                ptrnCnt: 0,
+                knitterCnt: 0,
+                numStsPtrn: Number(phase.interval_rows ?? 0),
+                repeatMultiple: 1,
+                sectionName,
+                sectionIndex: index,
+                type: "shaping_interval",
+                precomputedRescaled: intervalRows
+            }
+        );
+    });
+    return targets;
 }
 
 // Used to derive a page-wide scale/offset from many per-glyph measurements.
@@ -381,8 +404,8 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         // free-form pattern prose (a section whose real row count is "1"
         // would otherwise match nearly every "1" digit anywhere in its text).
         // This also naturally drops shaping targets for sections with no
-        // periodic shaping (shaping_event_count/shaping_interval_rows are 0
-        // there).
+        // periodic shaping (buildShapingTargets() returns [] for an empty
+        // shaping_phases array).
         const filteredGaugeInfo = gaugeInfoArray.filter((entry: any) =>
             entry.repeatMultiple !== 0 &&
             entry.numStsPtrn !== 0 &&
