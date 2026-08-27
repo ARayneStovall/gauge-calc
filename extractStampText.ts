@@ -48,52 +48,106 @@ function findWholeNumberIndex(str: string, numberText: string): number {
     return match ? match.index : -1;
 }
 
-// Builds the two shaping-cadence stamp targets for a section (its shaping
-// event count and its row/round interval), if it has any periodic shaping at
-// all (shaping_stitches_per_event !== 0). Unlike the plain stitches/rows
-// targets, these need a *precomputed* replacement value — rescaleShaping()
-// depends on the section's own already-rescaled start/end stitch counts and
-// row count, not a simple ptrnCnt/knitterCnt ratio — so callers must use
-// `precomputedRescaled` instead of calling rescaleCount() for these two
-// target types. Shared by extractAndStamp and extractStampDiagnostics so the
-// shaping math itself isn't duplicated, even though the rest of each
-// function's stamping loop is (see the comments on sectionBoundaries there).
+// Headings almost every pattern places after all real garment-construction
+// sections: an abbreviation key, finishing/grafting steps, a techniques or
+// notions list. These are real headings, but the model correctly never turns
+// them into GaugeSchema sections (there's no stitch/row count to extract
+// from them) — so nothing ever bounds a section's matching range against
+// them. Most obviously, the very last modeled section has no next heading to
+// bound it at all, and its range silently extends to the end of the
+// document. But it's not just the last section: a multi-column page layout
+// can make pdfjs's extracted text order not match the pattern's logical
+// construction order at all — e.g. one real sample pattern's "finishing:"
+// and "abbreviations:" back matter, positioned in a side column, extracts as
+// sitting textually *between* two sections that are knit back-to-back, so
+// even a section with a normal "next section" boundary can still have this
+// back matter land inside its range. That's a real problem either way: back
+// matter is dense with small numbers for entirely unrelated reasons (e.g.
+// "k2tog"/"p2tog" abbreviation definitions, "Round 2:"-style step labels),
+// and a section whose own shaping_interval/shaping_event_count happens to be
+// one of those same small numbers — extremely common, since these are
+// rarely more than single digits — will match and get stamped throughout the
+// back matter as if it were that section's own value.
+// Requiring the literal colon right after the word is what keeps this from
+// misfiring on an ordinary sentence that happens to use one of these words
+// in passing (e.g. "when finishing this round..." has no colon).
+const BACK_MATTER_HEADING_REGEX = /\b(?:abbreviations?|glossary|finishing|grafting|notions|techniques(?:\s+used)?|resources)\s*:/gi;
+
+function findBackMatterBoundary(patternText: string, searchFrom: number): number | null {
+    BACK_MATTER_HEADING_REGEX.lastIndex = searchFrom;
+    const match = BACK_MATTER_HEADING_REGEX.exec(patternText);
+    return match ? match.index : null;
+}
+
+// Builds the shaping-cadence stamp targets (event count + row/round interval
+// per phase) for a section, one pair per entry in section.shaping_phases.
+// Unlike the plain stitches/rows targets, these need a *precomputed*
+// replacement value — rescaleShaping() depends on the phase's own
+// already-rescaled start/end stitch counts and row span, not a simple
+// ptrnCnt/knitterCnt ratio — so callers must use `precomputedRescaled`
+// instead of calling rescaleCount() for these target types. Shared by
+// extractAndStamp and extractStampDiagnostics so the shaping math itself
+// isn't duplicated, even though the rest of each function's stamping loop is
+// (see the comments on sectionBoundaries there).
+//
+// A phase's own end stitch count isn't a field the model reports — it's
+// implicitly wherever the next phase starts, or the section's own final
+// stitch_count for the last phase — so phases are chained: phase i's end is
+// phase i+1's (rescaled) start. Likewise a phase's own row span isn't
+// reported directly (only the section's total row_count is); it's
+// approximated as that phase's own event_count * interval_rows (both already
+// read straight off the text for that phase) and rescaled with the row gauge
+// ratio. repeatMultiple is 1 for this derived row span — row_repeat_multiple
+// is documented as unrelated to shaping cadence, so it shouldn't apply here
+// either, same as it doesn't for the single-phase case this generalizes.
 function buildShapingTargets(section: any, index: number, stsCnt: number, knitterGaugeSts: number, rowCnt: number, knitterGaugeRow: number): Array<any> {
-    const stitchesPerEvent = Number(section.shaping_stitches_per_event ?? 0);
-    if (!stitchesPerEvent) return [];
+    const phases = Array.isArray(section.shaping_phases) ? section.shaping_phases : [];
+    if (phases.length === 0) return [];
 
     const repeatMultiple = Number(section.repeat_multiple ?? 1) || 1;
-    const rowRepeatMultiple = Number(section.row_repeat_multiple ?? 1) || 1;
     const sectionName = section.name ?? "";
+    const finalEndStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.stitch_count ?? 0), repeatMultiple, sectionName, "stitches");
 
-    const newStartStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.shaping_start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start");
-    const newEndStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(section.stitch_count ?? 0), repeatMultiple, sectionName, "stitches");
-    const newTotalRows = rescaleCount(rowCnt, knitterGaugeRow, Number(section.row_count ?? 0), rowRepeatMultiple, sectionName, "rows");
+    const targets: Array<any> = [];
+    phases.forEach((phase: any, phaseIndex: number) => {
+        const stitchesPerEvent = Number(phase.stitches_per_event ?? 0);
+        if (!stitchesPerEvent) return;
 
-    const { eventCount, intervalRows } = rescaleShaping(newStartStitches, newEndStitches, stitchesPerEvent, newTotalRows);
+        const newStartStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(phase.start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start");
+        const nextPhase = phases[phaseIndex + 1];
+        const newEndStitches = nextPhase
+            ? rescaleCount(stsCnt, knitterGaugeSts, Number(nextPhase.start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start")
+            : finalEndStitches;
 
-    return [
-        {
-            ptrnCnt: 0,
-            knitterCnt: 0,
-            numStsPtrn: Number(section.shaping_event_count ?? 0),
-            repeatMultiple: 1,
-            sectionName,
-            sectionIndex: index,
-            type: "shaping_event_count",
-            precomputedRescaled: eventCount
-        },
-        {
-            ptrnCnt: 0,
-            knitterCnt: 0,
-            numStsPtrn: Number(section.shaping_interval_rows ?? 0),
-            repeatMultiple: 1,
-            sectionName,
-            sectionIndex: index,
-            type: "shaping_interval",
-            precomputedRescaled: intervalRows
-        }
-    ];
+        const rawPhaseRows = Number(phase.event_count ?? 0) * Number(phase.interval_rows ?? 0);
+        const newPhaseRows = rescaleCount(rowCnt, knitterGaugeRow, rawPhaseRows, 1, sectionName, "shaping-phase-rows");
+
+        const { eventCount, intervalRows } = rescaleShaping(newStartStitches, newEndStitches, stitchesPerEvent, newPhaseRows);
+
+        targets.push(
+            {
+                ptrnCnt: 0,
+                knitterCnt: 0,
+                numStsPtrn: Number(phase.event_count ?? 0),
+                repeatMultiple: 1,
+                sectionName,
+                sectionIndex: index,
+                type: "shaping_event_count",
+                precomputedRescaled: eventCount
+            },
+            {
+                ptrnCnt: 0,
+                knitterCnt: 0,
+                numStsPtrn: Number(phase.interval_rows ?? 0),
+                repeatMultiple: 1,
+                sectionName,
+                sectionIndex: index,
+                type: "shaping_interval",
+                precomputedRescaled: intervalRows
+            }
+        );
+    });
+    return targets;
 }
 
 // Used to derive a page-wide scale/offset from many per-glyph measurements.
@@ -300,7 +354,11 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
     const rangeByIndex = new Map<number, { start: number; end: number }>();
     sortedBoundaries.forEach((section: any, i: number) => {
         const nextSection = sortedBoundaries[i + 1];
-        const end = (nextSection !== undefined) ? nextSection.start : patternText.length;
+        let end = (nextSection !== undefined) ? nextSection.start : patternText.length;
+        if (section.start !== -1) {
+            const backMatterStart = findBackMatterBoundary(patternText, section.start);
+            if (backMatterStart !== null) end = backMatterStart;
+        }
         rangeByIndex.set(section.index, { start: section.start, end });
     });
 
@@ -346,8 +404,8 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         // free-form pattern prose (a section whose real row count is "1"
         // would otherwise match nearly every "1" digit anywhere in its text).
         // This also naturally drops shaping targets for sections with no
-        // periodic shaping (shaping_event_count/shaping_interval_rows are 0
-        // there).
+        // periodic shaping (buildShapingTargets() returns [] for an empty
+        // shaping_phases array).
         const filteredGaugeInfo = gaugeInfoArray.filter((entry: any) =>
             entry.repeatMultiple !== 0 &&
             entry.numStsPtrn !== 0 &&
@@ -372,7 +430,21 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
             const itemInfo = pageItemInfos[idx];
             if (!itemInfo) return;
             if (!("str" in item)) return;
-            const str = item.str;
+            // Some PDFs embed a font with a broken/incomplete glyph program
+            // (pdfjs logs "TT: undefined function: N" warnings for these) —
+            // pdfjs can't decode certain glyphs at all and substitutes the
+            // Unicode replacement character (U+FFFD, "�") instead, most
+            // often for ligatures like "tt". That string later gets passed
+            // to pdf-lib for width measurement (never actually drawn — only
+            // the rescaled number itself is drawn), and pdf-lib's WinAnsi
+            // encoding has no mapping for U+FFFD, throwing and aborting the
+            // whole stamping pass. Swapping it for a plain space (same
+            // length, so substringIndex/prefix math computed against the
+            // unmodified extractPatternText offsets below stays aligned)
+            // avoids the crash; the small width-measurement inaccuracy this
+            // introduces is negligible next to the alternative of the whole
+            // pattern failing to stamp at all.
+            const str = item.str.replace(/�/g, " ");
 
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
@@ -387,6 +459,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
                 const fontSize = Math.hypot(item.transform[0], item.transform[1]) || Math.abs(item.transform[3]) || 10;
                 const prefix = str.substring(0, substringIndex);
                 const originalNumberText = String(target.numStsPtrn);
+                const suffix = str.substring(substringIndex + originalNumberText.length);
                 // How much wider/narrower pdf-lib+Helvetica renders this same
                 // string than pdfjs reports it was actually rendered at in
                 // the source PDF (different font metrics/embedded font) —
@@ -411,6 +484,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
                     itemWidth: item.width,
                     str,
                     prefix,
+                    suffix,
                     substringIndex,
                     fontSize,
                     originalNumberText,
@@ -466,10 +540,24 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
             const finalX = centerX - c.stampedWidth / 2;
             const fontSizeAdjusted = c.fontSize;
             const padding = Math.max(2, Math.round(fontSizeAdjusted * 0.15));
+            // Full padding is generous enough to fully hide the original
+            // number's anti-aliased edges, but a number that sits with zero
+            // gap against adjacent punctuation — "[20", "(44)", "60," are all
+            // routine in these patterns' bracketed size lists — would have
+            // that same padding bleed into the neighboring character,
+            // visibly clipping it. Only use the full padding on a side whose
+            // immediately-adjacent character (within the same source text
+            // run) is whitespace or doesn't exist; a tight non-space
+            // neighbor gets just enough padding to cover anti-aliasing
+            // without encroaching on it.
+            const leftChar = c.prefix.length > 0 ? c.prefix[c.prefix.length - 1] : "";
+            const rightChar = c.suffix.length > 0 ? c.suffix[0] : "";
+            const leftPadding = leftChar === "" || /\s/.test(leftChar) ? padding : Math.min(padding, 1);
+            const rightPadding = rightChar === "" || /\s/.test(rightChar) ? padding : Math.min(padding, 1);
             if (DEBUG) {
-                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, finalX, fontSizeAdjusted });
+                console.log('STAMP', { page: pageIndex, text: c.str, original: c.originalNumberText, rescaled: c.stsRescaled, pageAutoScale, finalX, fontSizeAdjusted, leftPadding, rightPadding });
             }
-            currentPage.drawRectangle({ x: centerX - c.coverWidth / 2 - padding, y: c.pdfLibY - padding, width: c.coverWidth + padding * 2, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
+            currentPage.drawRectangle({ x: centerX - c.coverWidth / 2 - leftPadding, y: c.pdfLibY - padding, width: c.coverWidth + leftPadding + rightPadding, height: fontSizeAdjusted + padding * 2, color: rgb(1, 1, 1) });
             currentPage.drawText(String(c.stsRescaled), { x: finalX, y: c.pdfLibY, size: fontSizeAdjusted, font, color: rgb(1, 0, 0) });
         }
     }
@@ -517,7 +605,11 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
     const rangeByIndex = new Map<number, { start: number; end: number }>();
     sortedBoundaries.forEach((section: any, i: number) => {
         const nextSection = sortedBoundaries[i + 1];
-        const end = nextSection !== undefined ? nextSection.start : patternText.length;
+        let end = nextSection !== undefined ? nextSection.start : patternText.length;
+        if (section.start !== -1) {
+            const backMatterStart = findBackMatterBoundary(patternText, section.start);
+            if (backMatterStart !== null) end = backMatterStart;
+        }
         rangeByIndex.set(section.index, { start: section.start, end });
     });
 
@@ -574,7 +666,21 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
             const itemInfo = pageItemInfos[idx];
             if (!itemInfo) return;
             if (!("str" in item)) return;
-            const str = item.str;
+            // Some PDFs embed a font with a broken/incomplete glyph program
+            // (pdfjs logs "TT: undefined function: N" warnings for these) —
+            // pdfjs can't decode certain glyphs at all and substitutes the
+            // Unicode replacement character (U+FFFD, "�") instead, most
+            // often for ligatures like "tt". That string later gets passed
+            // to pdf-lib for width measurement (never actually drawn — only
+            // the rescaled number itself is drawn), and pdf-lib's WinAnsi
+            // encoding has no mapping for U+FFFD, throwing and aborting the
+            // whole stamping pass. Swapping it for a plain space (same
+            // length, so substringIndex/prefix math computed against the
+            // unmodified extractPatternText offsets below stays aligned)
+            // avoids the crash; the small width-measurement inaccuracy this
+            // introduces is negligible next to the alternative of the whole
+            // pattern failing to stamp at all.
+            const str = item.str.replace(/�/g, " ");
 
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
@@ -586,6 +692,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
                 const fontSize = Math.hypot(item.transform[0], item.transform[1]) || Math.abs(item.transform[3]) || 10;
                 const prefix = str.substring(0, substringIndex);
                 const originalNumberText = String(target.numStsPtrn);
+                const suffix = str.substring(substringIndex + originalNumberText.length);
                 const pdfLibItemWidth = font.widthOfTextAtSize(str, fontSize);
                 const widthRatio = pdfLibItemWidth > 0 ? item.width / pdfLibItemWidth : 1;
                 widthRatios.push(widthRatio);
