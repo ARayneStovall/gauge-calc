@@ -138,13 +138,37 @@ function findBackMatterBoundary(patternText: string, searchFrom: number): number
 // Ranges are tracked by each section's original array index (not by
 // name) so a later section with the same name as an earlier one still
 // gets matched to its own distinct range.
+//
+// The model sometimes gives two sections the same source_quote (e.g.
+// RIBBING and LEG both quoting "Cast on 56 (64, 72) stitches."), which sends
+// the second back to the first's position via the whole-text fallback. Two
+// sections sharing a start leaves the earlier one an empty range that never
+// gets stamped, so the later one anchors on its own heading instead, as long
+// as that heading comes before the next section's quote (a mention further
+// along would swallow the sections in between). If there's no such heading,
+// the empty range stands: letting both sections share the text would stamp
+// each one's small numbers over the other's, and a wrong number on the page
+// is worse than an unchanged one.
 export function computeSectionRanges(patternText: string, sections: any[]): Map<number, { start: number; end: number }> {
     let searchCursor = 0;
+    const claimedStarts = new Set<number>();
     const sectionBoundaries = sections.map((section: any, index: number) => {
-        const anchor = section.source_quote && patternText.includes(section.source_quote) ? section.source_quote : section.name;
+        let anchor = section.source_quote && patternText.includes(section.source_quote) ? section.source_quote : section.name;
         let start = patternText.indexOf(anchor, searchCursor);
         if (start === -1) start = patternText.indexOf(anchor);
-        if (start !== -1) searchCursor = start + anchor.length;
+        if (claimedStarts.has(start)) {
+            const headingStart = patternText.indexOf(section.name, searchCursor);
+            const nextQuote = sections[index + 1]?.source_quote;
+            const nextQuoteStart = nextQuote ? patternText.indexOf(nextQuote, searchCursor) : -1;
+            if (headingStart !== -1 && (nextQuoteStart === -1 || headingStart < nextQuoteStart)) {
+                anchor = section.name;
+                start = headingStart;
+            }
+        }
+        if (start !== -1) {
+            claimedStarts.add(start);
+            searchCursor = start + anchor.length;
+        }
         return { index, start, anchorEnd: start === -1 ? -1 : start + anchor.length };
     });
     const sortedBoundaries = [...sectionBoundaries].sort((a, b) => a.start - b.start);
