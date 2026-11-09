@@ -213,7 +213,22 @@ export function computeSectionRanges(patternText: string, sections: any[]): Map<
 // ratio. repeatMultiple is 1 for this derived row span — row_repeat_multiple
 // is documented as unrelated to shaping cadence, so it shouldn't apply here
 // either, same as it doesn't for the single-phase case this generalizes.
-function buildShapingTargets(section: any, index: number, stsCnt: number, knitterGaugeSts: number, rowCnt: number, knitterGaugeRow: number): Array<any> {
+//
+// Two guards keep a bad parse from corrupting the page. Both leave the
+// pattern's own numbers untouched rather than stamping a guess, so a skipped
+// phase just isn't rescaled:
+// - A phase whose event_count * stitches_per_event doesn't match its own
+//   start-to-end stitch change (within one event's worth, for off-by-one
+//   phrasings like "then work one more row") is skipped entirely. The model
+//   sometimes reports a cadence from one part of the text and endpoints from
+//   another (e.g. 12 events of 4 sts against a 20-st change), and fitting
+//   those together produced intervals like "every 4th row" for shaping
+//   actually worked every 2nd.
+// - A rescaled value of 0 is never stamped over a nonzero original.
+//   rescaleShaping() returns 0 to mean "no shaping", which is right for the
+//   math but wrong as page text: these numbers are matched loosely, and
+//   stamping 0 turned "k2tog" into "k0tog" and "Rnd 2" into "Rnd 0".
+export function buildShapingTargets(section: any, index: number, stsCnt: number, knitterGaugeSts: number, rowCnt: number, knitterGaugeRow: number): Array<any> {
     const phases = Array.isArray(section.shaping_phases) ? section.shaping_phases : [];
     if (phases.length === 0) return [];
 
@@ -225,6 +240,12 @@ function buildShapingTargets(section: any, index: number, stsCnt: number, knitte
     phases.forEach((phase: any, phaseIndex: number) => {
         const stitchesPerEvent = Number(phase.stitches_per_event ?? 0);
         if (!stitchesPerEvent) return;
+
+        const nextPhaseForCheck = phases[phaseIndex + 1];
+        const rawEndStitches = Number(nextPhaseForCheck ? nextPhaseForCheck.start_stitch_count ?? 0 : section.stitch_count ?? 0);
+        const statedChange = Number(phase.event_count ?? 0) * Math.abs(stitchesPerEvent);
+        const actualChange = Math.abs(Number(phase.start_stitch_count ?? 0) - rawEndStitches);
+        if (Math.abs(statedChange - actualChange) > Math.abs(stitchesPerEvent)) return;
 
         const newStartStitches = rescaleCount(stsCnt, knitterGaugeSts, Number(phase.start_stitch_count ?? 0), repeatMultiple, sectionName, "shaping-start");
         const nextPhase = phases[phaseIndex + 1];
@@ -260,7 +281,7 @@ function buildShapingTargets(section: any, index: number, stsCnt: number, knitte
             }
         );
     });
-    return targets;
+    return targets.filter((target) => !(target.precomputedRescaled === 0 && target.numStsPtrn !== 0));
 }
 
 // Used to derive a page-wide scale/offset from many per-glyph measurements.
