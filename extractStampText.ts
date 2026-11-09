@@ -3,6 +3,8 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createRequire } from "node:module";
 import path from "path";
 import { rescaleCount, rescaleShaping } from "./rescale.js";
+import { findAcceptableNumberIndex, findSizeListSlots, type MatchContext } from "./matchRules.js";
+import { resolveSizePosition } from "./resolveSize.js";
 const DEBUG = process.env.DEBUG === "1";
 
 // Thrown when a PDF yields too little (or no) extracted text to plausibly
@@ -36,21 +38,16 @@ async function prompting(context: string, preferredSizeLabel: string) {
     return mod.prompting(context, preferredSizeLabel);
 }
 
-// Finds `numberText` in `str` as a standalone number, not as a substring of a
-// larger one — e.g. target "1" must not match inside "11" or "51". Plain
-// String#includes/indexOf would match those, which previously caused a
-// section with a row/stitch count of "1" to get "found" (and stamped over)
-// dozens of unrelated numbers throughout its text.
-// Part of a decimal doesn't count either: "8" must not match the "8" in
-// "8.5 cm" or the "5" in "8.5", or a measurement gets rewritten as if it were
-// a count. Only "." is treated as a decimal point. A comma can't be, since
-// size lists are sometimes written without spaces ("K19(22,25)"), so a
-// European-style "0,5" can still match.
-export function findWholeNumberIndex(str: string, numberText: string): number {
-    const escaped = numberText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(?<![0-9])(?<![0-9]\\.)${escaped}(?![0-9])(?!\\.[0-9])`);
-    const match = regex.exec(str);
-    return match ? match.index : -1;
+// Which occurrences of a target number actually count (whole numbers only,
+// the knitter's own slot in a size list, repeat sentences for shaping
+// counts) lives in matchRules.ts. Matching a plain substring once stamped a
+// section's row count of "1" over dozens of unrelated "11"s and "51"s.
+function buildMatchContext(patternText: string, preferredSize: string): MatchContext {
+    return {
+        patternText,
+        slots: findSizeListSlots(patternText),
+        resolved: resolveSizePosition(patternText, preferredSize)
+    };
 }
 
 // Headings almost every pattern places after all real garment-construction
@@ -455,6 +452,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
     }
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
+    const matchContext = buildMatchContext(patternText, preferredSize);
 
     for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
         const page = await pdf.getPage(pageIndex);
@@ -543,7 +541,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
                 if (!matchingRange) continue;
-                const substringIndex = findWholeNumberIndex(str, String(target.numStsPtrn));
+                const substringIndex = findAcceptableNumberIndex(str, itemInfo.offset, String(target.numStsPtrn), target.type, matchContext);
                 if (substringIndex === -1) continue;
                 if (!(itemInfo.offset >= matchingRange.start && itemInfo.offset < matchingRange.end)) continue;
 
@@ -683,6 +681,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
     }
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
+    const matchContext = buildMatchContext(patternText, preferredSize);
 
     const diagnostics: StampDiagnostic[] = [];
 
@@ -756,7 +755,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
             for (const target of filteredGaugeInfo) {
                 const matchingRange = rangeByIndex.get(target.sectionIndex);
                 if (!matchingRange) continue;
-                const substringIndex = findWholeNumberIndex(str, String(target.numStsPtrn));
+                const substringIndex = findAcceptableNumberIndex(str, itemInfo.offset, String(target.numStsPtrn), target.type, matchContext);
                 if (substringIndex === -1) continue;
                 if (!(itemInfo.offset >= matchingRange.start && itemInfo.offset < matchingRange.end)) continue;
 
