@@ -68,15 +68,104 @@ function findWholeNumberIndex(str: string, numberText: string): number {
 // one of those same small numbers — extremely common, since these are
 // rarely more than single digits — will match and get stamped throughout the
 // back matter as if it were that section's own value.
-// Requiring the literal colon right after the word is what keeps this from
-// misfiring on an ordinary sentence that happens to use one of these words
-// in passing (e.g. "when finishing this round..." has no colon).
-const BACK_MATTER_HEADING_REGEX = /\b(?:abbreviations?|glossary|finishing|grafting|notions|techniques(?:\s+used)?|resources)\s*:/gi;
+// Many patterns write these headings with no colon at all ("GLOSSARY K tbl:
+// ...", "Finishing Cut a long tail"), and the flattened text has no line
+// breaks, so "alone on its own line" can't identify a heading either. Case is
+// the remaining signal, which is what keeps these from misfiring on an
+// ordinary sentence that uses one of these words in passing (e.g. "when
+// finishing this round..."):
+// - any case, followed by a colon
+// - ALL CAPS, with or without a colon
+// - Title Case: "Abbreviations"/"Glossary" are never sentence-opening verbs,
+//   so they match as-is; the rest also need a capitalized next word, which
+//   separates the heading "Finishing Cut a long tail" from the sentence
+//   "Finishing the collar..."
+const BACK_MATTER_HEADING_REGEXES = [
+    /\b(?:abbreviations?|glossary|finishing|grafting|notions|techniques(?:\s+used)?|resources)\s*:/gi,
+    /\b(?:ABBREVIATIONS?|GLOSSARY|FINISHING|GRAFTING|NOTIONS|TECHNIQUES|RESOURCES)\b/g,
+    /\b(?:Abbreviations?|Glossary)\b/g,
+    /\b(?:Finishing|Grafting|Notions|Techniques|Resources)(?=\s+[A-Z])/g,
+];
+
+// A heading word that's really a cross-reference: "see Glossary for details",
+// "(Abbreviations on p. 4)", "refer to the Finishing Instructions". Case can't
+// rule these out, since the word is capitalized exactly as a heading would be,
+// but a real heading follows the end of the previous block of text rather than
+// a word that needs an object. Every heading match across samplePatterns/ is
+// preceded by something else, so this only rejects actual mentions. "and" is
+// deliberately not listed: "STITCHES AND TECHNIQUES" is a real heading.
+const PASSING_MENTION_PREFIX_REGEX = /(?:\(\s*|\b(?:see|to|the|our|this|in|on|at|from|per|under|check|using|with)\s+)$/i;
+
+function isPassingMention(patternText: string, index: number): boolean {
+    return PASSING_MENTION_PREFIX_REGEX.test(patternText.slice(Math.max(0, index - 20), index));
+}
 
 function findBackMatterBoundary(patternText: string, searchFrom: number): number | null {
-    BACK_MATTER_HEADING_REGEX.lastIndex = searchFrom;
-    const match = BACK_MATTER_HEADING_REGEX.exec(patternText);
-    return match ? match.index : null;
+    let earliest: number | null = null;
+    for (const regex of BACK_MATTER_HEADING_REGEXES) {
+        regex.lastIndex = searchFrom;
+        let match = regex.exec(patternText);
+        while (match && isPassingMention(patternText, match.index)) match = regex.exec(patternText);
+        if (match && (earliest === null || match.index < earliest)) earliest = match.index;
+    }
+    return earliest;
+}
+
+// Locate each section's own grounding sentence (source_quote) in the
+// flattened text and derive a [start, end) character range for it (a
+// section runs until the next section's own anchor starts, or end of
+// document for the last one). Anchored on source_quote rather than the
+// bare heading name: many patterns reuse an identical heading across
+// symmetric pieces (e.g. "RIBBING" or "BODY" under both a back panel and
+// a front panel, each with different counts) — anchoring on name alone
+// made every section sharing that name collapse onto whichever
+// occurrence of the name came first in the text, since a plain
+// patternText.indexOf(name) can't tell those repeats apart. Falls back
+// to name if a quote is missing or doesn't literally appear (e.g. the
+// model paraphrased it slightly).
+//
+// Search runs with a monotonically-advancing cursor rather than an
+// independent indexOf per section: sections are produced in the same
+// left-to-right order they occur in the pattern, so searching each one
+// forward from where the previous section's match ended correctly picks
+// out successive occurrences. This matters even beyond repeated
+// headings — some patterns have two panels (e.g. a left and right front
+// panel on a cardigan) that are truly identical in wording and numbers,
+// so even a distinct-but-repeated source_quote would otherwise collide
+// on the same first match for both. If a section's anchor can't be
+// found ahead of the cursor at all (out-of-order model output), fall
+// back to searching the whole text so one bad match doesn't cascade.
+// Ranges are tracked by each section's original array index (not by
+// name) so a later section with the same name as an earlier one still
+// gets matched to its own distinct range.
+export function computeSectionRanges(patternText: string, sections: any[]): Map<number, { start: number; end: number }> {
+    let searchCursor = 0;
+    const sectionBoundaries = sections.map((section: any, index: number) => {
+        const anchor = section.source_quote && patternText.includes(section.source_quote) ? section.source_quote : section.name;
+        let start = patternText.indexOf(anchor, searchCursor);
+        if (start === -1) start = patternText.indexOf(anchor);
+        if (start !== -1) searchCursor = start + anchor.length;
+        return { index, start, anchorEnd: start === -1 ? -1 : start + anchor.length };
+    });
+    const sortedBoundaries = [...sectionBoundaries].sort((a, b) => a.start - b.start);
+    const rangeByIndex = new Map<number, { start: number; end: number }>();
+    sortedBoundaries.forEach((section, i) => {
+        const nextSection = sortedBoundaries[i + 1];
+        let end = nextSection !== undefined ? nextSection.start : patternText.length;
+        if (section.start !== -1) {
+            // Searches from the end of the anchor, not its start: a section
+            // can anchor on text that opens with a back-matter word (e.g.
+            // "Finishing We will now join the shoulders..."), and matching
+            // that would end the section where it begins, leaving it an
+            // empty range that never gets stamped.
+            const backMatterStart = findBackMatterBoundary(patternText, section.anchorEnd);
+            // Only ever shortens the range: back matter further along than
+            // the next section must not stretch this one over that section.
+            if (backMatterStart !== null) end = Math.min(end, backMatterStart);
+        }
+        rangeByIndex.set(section.index, { start: section.start, end });
+    });
+    return rangeByIndex;
 }
 
 // Builds the shaping-cadence stamp targets (event count + row/round interval
@@ -315,52 +404,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         throw new Error("Invalid parser output: missing sections");
     }
 
-    // Locate each section's own grounding sentence (source_quote) in the
-    // flattened text and derive a [start, end) character range for it (a
-    // section runs until the next section's own anchor starts, or end of
-    // document for the last one). Anchored on source_quote rather than the
-    // bare heading name: many patterns reuse an identical heading across
-    // symmetric pieces (e.g. "RIBBING" or "BODY" under both a back panel and
-    // a front panel, each with different counts) — anchoring on name alone
-    // made every section sharing that name collapse onto whichever
-    // occurrence of the name came first in the text, since a plain
-    // patternText.indexOf(name) can't tell those repeats apart. Falls back
-    // to name if a quote is missing or doesn't literally appear (e.g. the
-    // model paraphrased it slightly).
-    //
-    // Search runs with a monotonically-advancing cursor rather than an
-    // independent indexOf per section: sections are produced in the same
-    // left-to-right order they occur in the pattern, so searching each one
-    // forward from where the previous section's match ended correctly picks
-    // out successive occurrences. This matters even beyond repeated
-    // headings — some patterns have two panels (e.g. a left and right front
-    // panel on a cardigan) that are truly identical in wording and numbers,
-    // so even a distinct-but-repeated source_quote would otherwise collide
-    // on the same first match for both. If a section's anchor can't be
-    // found ahead of the cursor at all (out-of-order model output), fall
-    // back to searching the whole text so one bad match doesn't cascade.
-    // Ranges are tracked by each section's original array index (not by
-    // name) so a later section with the same name as an earlier one still
-    // gets matched to its own distinct range.
-    let searchCursor = 0;
-    const sectionBoundaries = patternResults.sections.sections.map((section: any, index: number) => {
-        const anchor = section.source_quote && patternText.includes(section.source_quote) ? section.source_quote : section.name;
-        let start = patternText.indexOf(anchor, searchCursor);
-        if (start === -1) start = patternText.indexOf(anchor);
-        if (start !== -1) searchCursor = start + anchor.length;
-        return { index, start };
-    });
-    const sortedBoundaries = [...sectionBoundaries].sort((a: any, b: any) => a.start - b.start);
-    const rangeByIndex = new Map<number, { start: number; end: number }>();
-    sortedBoundaries.forEach((section: any, i: number) => {
-        const nextSection = sortedBoundaries[i + 1];
-        let end = (nextSection !== undefined) ? nextSection.start : patternText.length;
-        if (section.start !== -1) {
-            const backMatterStart = findBackMatterBoundary(patternText, section.start);
-            if (backMatterStart !== null) end = backMatterStart;
-        }
-        rangeByIndex.set(section.index, { start: section.start, end });
-    });
+    const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
 
     for (let pageIndex = 1; pageIndex <= pdf.numPages; pageIndex++) {
         const page = await pdf.getPage(pageIndex);
@@ -588,30 +632,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
         throw new Error("Invalid parser output: missing sections");
     }
 
-    // See extractAndStamp for why this anchors on source_quote (with a
-    // name-based fallback), searches with a monotonically-advancing cursor
-    // rather than an independent indexOf per section, and tracks ranges by
-    // original array index rather than by name — kept in sync with that
-    // function manually.
-    let searchCursor = 0;
-    const sectionBoundaries = patternResults.sections.sections.map((section: any, index: number) => {
-        const anchor = section.source_quote && patternText.includes(section.source_quote) ? section.source_quote : section.name;
-        let start = patternText.indexOf(anchor, searchCursor);
-        if (start === -1) start = patternText.indexOf(anchor);
-        if (start !== -1) searchCursor = start + anchor.length;
-        return { index, start };
-    });
-    const sortedBoundaries = [...sectionBoundaries].sort((a: any, b: any) => a.start - b.start);
-    const rangeByIndex = new Map<number, { start: number; end: number }>();
-    sortedBoundaries.forEach((section: any, i: number) => {
-        const nextSection = sortedBoundaries[i + 1];
-        let end = nextSection !== undefined ? nextSection.start : patternText.length;
-        if (section.start !== -1) {
-            const backMatterStart = findBackMatterBoundary(patternText, section.start);
-            if (backMatterStart !== null) end = backMatterStart;
-        }
-        rangeByIndex.set(section.index, { start: section.start, end });
-    });
+    const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
 
     const diagnostics: StampDiagnostic[] = [];
 
