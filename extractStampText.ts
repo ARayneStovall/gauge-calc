@@ -41,9 +41,14 @@ async function prompting(context: string, preferredSizeLabel: string) {
 // String#includes/indexOf would match those, which previously caused a
 // section with a row/stitch count of "1" to get "found" (and stamped over)
 // dozens of unrelated numbers throughout its text.
-function findWholeNumberIndex(str: string, numberText: string): number {
+// Part of a decimal doesn't count either: "8" must not match the "8" in
+// "8.5 cm" or the "5" in "8.5", or a measurement gets rewritten as if it were
+// a count. Only "." is treated as a decimal point. A comma can't be, since
+// size lists are sometimes written without spaces ("K19(22,25)"), so a
+// European-style "0,5" can still match.
+export function findWholeNumberIndex(str: string, numberText: string): number {
     const escaped = numberText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    const regex = new RegExp(`(?<![0-9])${escaped}(?![0-9])`);
+    const regex = new RegExp(`(?<![0-9])(?<![0-9]\\.)${escaped}(?![0-9])(?!\\.[0-9])`);
     const match = regex.exec(str);
     return match ? match.index : -1;
 }
