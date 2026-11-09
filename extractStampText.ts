@@ -434,7 +434,27 @@ export interface StampDiagnostic {
 // reconciles pdfjs's rendered glyph widths with pdf-lib/Helvetica's metrics
 // for the same string so the replacement text can be sized and centered
 // correctly over the original.
-export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number, stampDx: number = 0, preferredSize: string = "3") {
+// Validates a parse before anything is matched against it. A parse comes
+// either fresh from the LLM or, via the `parsed` argument on extractAndStamp
+// and extractStampDiagnostics, from parsePattern() — which lets the test
+// runner stamp a PDF from the exact parse its diagnostics describe, instead
+// of a second LLM call that may disagree with the first.
+function checkParse(patternResults: any) {
+    if (!patternResults || !patternResults.sections || !Array.isArray(patternResults.sections.sections)) {
+        throw new Error("Invalid parser output: missing sections");
+    }
+    return patternResults;
+}
+
+export async function parsePattern(pdfBuffer: Buffer, preferredSize: string = "3") {
+    const { patternText } = await extractPatternText(pdfBuffer);
+    if (patternText.trim().length < MIN_PATTERN_TEXT_LENGTH) {
+        throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
+    }
+    return checkParse(await prompting(patternText, preferredSize));
+}
+
+export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number, stampDx: number = 0, preferredSize: string = "3", parsed?: any) {
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
@@ -446,10 +466,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
     }
 
-    const patternResults = await prompting(patternText, preferredSize);
-    if (!patternResults || !patternResults.sections || !Array.isArray(patternResults.sections.sections)) {
-        throw new Error("Invalid parser output: missing sections");
-    }
+    const patternResults = checkParse(parsed ?? await prompting(patternText, preferredSize));
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
     const matchContext = buildMatchContext(patternText, preferredSize);
@@ -663,7 +680,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
 // collects the results into a StampDiagnostic[] instead of drawing on the
 // PDF. Used by scripts/run_validation.mjs to inspect what would be stamped
 // without producing an output file.
-export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number, stampDx: number = 0, preferredSize: string = "3") {
+export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number, stampDx: number = 0, preferredSize: string = "3", parsed?: any) {
     const pdfDoc = await PDFDocument.load(pdfBuffer);
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
 
@@ -675,10 +692,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
         throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
     }
 
-    const patternResults = await prompting(patternText, preferredSize);
-    if (!patternResults || !patternResults.sections || !Array.isArray(patternResults.sections.sections)) {
-        throw new Error("Invalid parser output: missing sections");
-    }
+    const patternResults = checkParse(parsed ?? await prompting(patternText, preferredSize));
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
     const matchContext = buildMatchContext(patternText, preferredSize);
