@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
-import { extractStampDiagnostics, extractAndStamp } from "../extractStampText.js";
+import { extractStampDiagnostics, extractAndStamp, parsePattern } from "../extractStampText.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
@@ -162,12 +162,19 @@ async function testOneFile(pdfName, spec, allFiles, runDir) {
   for (let i = 1; i <= spec.repeat; i++) {
     console.log(`[${file}] run ${i}/${spec.repeat}...`);
     try {
-      const diagnostics = await extractStampDiagnostics(data, spec.sts, spec.row, spec.stampDx, spec.preferredSize);
+      // One parse per run, shared by the diagnostics and the stamped PDF, and
+      // saved alongside them so a run can be replayed or compared later
+      // without calling the LLM again. (Each used to call the LLM itself, so
+      // run-1-stamped.pdf could come from a different parse than
+      // run-1-diagnostics.json described.)
+      const parsed = await parsePattern(data, spec.preferredSize);
+      await fs.writeFile(path.join(fileDir, `run-${i}-parse.json`), JSON.stringify(parsed, null, 2));
+      const diagnostics = await extractStampDiagnostics(data, spec.sts, spec.row, spec.stampDx, spec.preferredSize, parsed);
       await fs.writeFile(path.join(fileDir, `run-${i}-diagnostics.json`), JSON.stringify(diagnostics, null, 2));
       runSummaries.push(summarizeDiagnostics(diagnostics));
 
       if (i === 1 || spec.stampEveryRun) {
-        const pdfBytes = await extractAndStamp(data, spec.sts, spec.row, spec.stampDx, spec.preferredSize);
+        const pdfBytes = await extractAndStamp(data, spec.sts, spec.row, spec.stampDx, spec.preferredSize, parsed);
         await fs.writeFile(path.join(fileDir, `run-${i}-stamped.pdf`), Buffer.from(pdfBytes));
       }
     } catch (err) {

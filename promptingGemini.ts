@@ -8,15 +8,21 @@ const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // The free tier caps requests per minute per model, so a burst of calls
 // (e.g. test:patterns running several repeats back to back) can hit a 429
-// well within normal use. Retry a few times with backoff before giving up.
-async function withRateLimitRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
+// well within normal use. Gemini also returns 503 "high demand" errors that
+// usually clear within seconds (5 of roughly 100 calls on 2026-11-09), plus
+// the occasional 500/504. Retry all of these a few times with backoff before
+// giving up: rate limits need a long wait for the window to reset, the
+// others only a short one.
+const RETRYABLE_STATUSES = new Set([429, 500, 503, 504]);
+
+async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Promise<T> {
     for (let attempt = 1; ; attempt++) {
         try {
             return await fn();
         } catch (err) {
-            const isRateLimited = err instanceof ApiError && err.status === 429;
-            if (!isRateLimited || attempt >= maxAttempts) throw err;
-            await sleep(attempt * 20_000);
+            const status = err instanceof ApiError ? err.status : undefined;
+            if (status === undefined || !RETRYABLE_STATUSES.has(status) || attempt >= maxAttempts) throw err;
+            await sleep(attempt * (status === 429 ? 20_000 : 5_000));
         }
     }
 }
@@ -28,7 +34,7 @@ async function withRateLimitRetry<T>(fn: () => Promise<T>, maxAttempts = 4): Pro
 // extract when the pattern lists more than one (see promptShared.ts's
 // buildSystemPrompt for how that's resolved).
 export async function prompting(context: string, preferredSizeLabel: string = "3") {
-    const response = await withRateLimitRetry(() => client.models.generateContent({
+    const response = await withRetry(() => client.models.generateContent({
         model: "gemini-3.5-flash-lite",
         contents: [
             { role: "user", parts: [{ text: context }] },
