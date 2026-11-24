@@ -10,6 +10,7 @@
     "batch": "node scripts/run_batch.mjs",
     "validate": "node scripts/run_validation.mjs",
     "test:patterns": "node scripts/run_test.mjs",
+    "score": "node scripts/score_accuracy.mjs",
     "finetune:dataset": "node scripts/build_finetune_dataset.mjs",
     "finetune:review": "node scripts/build_review_sheets.mjs",
     "finetune:build-tuning-file": "node scripts/build_gemini_tuning_file.mjs",

@@ -128,3 +128,20 @@ Each invocation writes to its own folder named `<date>-<run number>` (e.g. `test
 node scripts/inspect_output.mjs
 ```
 Compares each stamped PDF in `output/` against its original in `samplePatterns/`, page by page, reporting which numeric tokens are new and cross-checking them against the corresponding `diagnostics/` file's expected rescaled values.
+
+## Scoring accuracy
+
+`test:patterns` checks whether repeat runs agree with each other. `npm run score` checks whether a parse is actually right, by comparing it to the hand-reviewed answer key in `finetuneData/raw/` (every file with `"reviewed": true`). Use it to compare prompt, model or fine-tuning changes by one number.
+
+```
+npm run score                          # parse every reviewed pattern once and score it
+npm run score -- --repeat 3            # parse each 3 times (parsing isn't deterministic)
+npm run score -- --files "Hat,Petty"   # only these patterns (exact or partial name)
+npm run score -- --from scoreRuns/2026-11-24-01   # re-score saved parses, no LLM calls
+```
+
+Each parse is scored on a list of checks, one point each: the three gauge fields; for every section in the answer key, whether it was found plus its `stitch_count`, `row_count`, `repeat_multiple` and `row_repeat_multiple` (a missed section loses all five); and one lost point for every extra section the answer key doesn't have. Sections are paired by name, so "Sleeves" and "Sleeves (make 2)" still match. Row counts follow the app's row-count rule (below) on both sides before they're compared, so a total that's never printed, or a 0 against a 1, isn't counted as a mistake. The report gives overall accuracy plus three numbers that separate the kinds of failure: sections found, extra sections, and numbers right within the sections it found. Shaping phases aren't scored, because the answer key predates them.
+
+Live runs save each parse to `scoreRuns/<date>-<run number>/` (gitignored) with `score.txt`, `mistakes.txt` (every wrong answer, by file) and `report.json`. `--from` also accepts a `testRuns/` folder, skipping any file that was parsed at a different size than the answer key's, and writes `rescore-score.txt` and `rescore-mistakes.txt` beside the parses.
+
+**The row-count rule.** A section's `row_count` is the row or round number printed in that section's own text that sets how long it is ("work 24 rounds", "until you have worked 78 rows"), and 0 when there isn't one: the length is a measurement, only a total you'd have to work out from repeats, or a repeat count ("work rounds 1-2 a total of 10 times"). Stamping can only replace a number printed on the page, so `keepOnlyPrintedRowCounts()` in `extractStampText.ts` zeroes any row count that isn't printed in the knitter's size slot within its section. It runs on every parse, on the answer key and parses when scoring, and on the fine-tuning examples, so all of them follow the same rule. The stamped PDF doesn't change.
