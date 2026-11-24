@@ -56,6 +56,15 @@ app.post("/api/rescale", upload.single("pdf"), async function (req, res) {
             res.status(422).send(error.message);
             return;
         }
+        // The LLM provider being overloaded (503) or rate-limited (429) is
+        // temporary and not the user's fault, but it used to surface as the
+        // same generic 500 as a real bug. These have already been retried
+        // (promptingGemini.ts), so tell the user to try again later instead.
+        const status = (error as { status?: unknown } | null)?.status;
+        if (status === 503 || status === 429) {
+            res.status(503).send("The pattern reader is overloaded right now. Please try again in a few minutes.");
+            return;
+        }
         res.status(500).send("Error processing pattern");
     }
 });
