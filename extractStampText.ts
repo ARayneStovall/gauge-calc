@@ -3,7 +3,7 @@ import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { createRequire } from "node:module";
 import path from "path";
 import { rescaleCount, rescaleShaping } from "./rescale.js";
-import { findAcceptableNumberIndex, findSizeListSlots, type MatchContext } from "./matchRules.js";
+import { findAcceptableNumberIndex, findSizeListSlots, isAcceptableMatch, type MatchContext } from "./matchRules.js";
 import { resolveSizePosition } from "./resolveSize.js";
 const DEBUG = process.env.DEBUG === "1";
 
@@ -446,12 +446,49 @@ function checkParse(patternResults: any) {
     return patternResults;
 }
 
+// The row_count rule: a section's row_count is a row/round number printed in
+// that section's own text that sets how long the section is ("work 24
+// rounds", "until you have worked 78 rows"), and 0 when there isn't one
+// (length given as a measurement, or only as a total you'd have to work out
+// from repeats). Stamping can only replace a number it finds on the page, so
+// a worked-out total never reached the PDF anyway. This zeroes any row_count
+// the stamper couldn't use: not printed as a whole number in the section's
+// range, printed only in another size's slot, or 1 or less (too common a
+// token to search for; see the filter in extractAndStamp). The stamped PDF
+// doesn't change; the parse just stops recording numbers that do nothing,
+// so saved parses, the accuracy score and the fine-tuning data all follow
+// the rule. Safe to apply more than once.
+export function keepOnlyPrintedRowCounts(parsed: any, patternText: string, preferredSize: string = "3") {
+    const sections = parsed.sections.sections;
+    const ranges = computeSectionRanges(patternText, sections);
+    const context = buildMatchContext(patternText, preferredSize);
+    const isPrinted = (rowCount: number, range: { start: number; end: number } | undefined) => {
+        if (!range || !Number.isFinite(rowCount) || rowCount <= 1) return false;
+        const numberText = String(rowCount);
+        for (let at = patternText.indexOf(numberText, range.start); at !== -1 && at < range.end; at = patternText.indexOf(numberText, at + 1)) {
+            if (isAcceptableMatch(context, at, numberText, "rows")) return true;
+        }
+        return false;
+    };
+    return {
+        ...parsed,
+        sections: {
+            ...parsed.sections,
+            sections: sections.map((s: any, i: number) => isPrinted(Number(s.row_count), ranges.get(i)) ? s : { ...s, row_count: 0 }),
+        },
+    };
+}
+
+function prepareParse(parsed: any, patternText: string, preferredSize: string) {
+    return keepOnlyPrintedRowCounts(checkParse(parsed), patternText, preferredSize);
+}
+
 export async function parsePattern(pdfBuffer: Buffer, preferredSize: string = "3") {
     const { patternText } = await extractPatternText(pdfBuffer);
     if (patternText.trim().length < MIN_PATTERN_TEXT_LENGTH) {
         throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
     }
-    return checkParse(await prompting(patternText, preferredSize));
+    return prepareParse(await prompting(patternText, preferredSize), patternText, preferredSize);
 }
 
 export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number, knitterGaugeRow: number, stampDx: number = 0, preferredSize: string = "3", parsed?: any) {
@@ -466,7 +503,7 @@ export async function extractAndStamp(pdfBuffer: Buffer, knitterGaugeSts: number
         throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
     }
 
-    const patternResults = checkParse(parsed ?? await prompting(patternText, preferredSize));
+    const patternResults = prepareParse(parsed ?? await prompting(patternText, preferredSize), patternText, preferredSize);
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
     const matchContext = buildMatchContext(patternText, preferredSize);
@@ -692,7 +729,7 @@ export async function extractStampDiagnostics(pdfBuffer: Buffer, knitterGaugeSts
         throw new InsufficientPatternTextError("Couldn't find any readable text in this PDF — it may be a scanned image with no selectable text, which this tool can't currently read. Try a PDF with real (selectable) text.");
     }
 
-    const patternResults = checkParse(parsed ?? await prompting(patternText, preferredSize));
+    const patternResults = prepareParse(parsed ?? await prompting(patternText, preferredSize), patternText, preferredSize);
 
     const rangeByIndex = computeSectionRanges(patternText, patternResults.sections.sections);
     const matchContext = buildMatchContext(patternText, preferredSize);

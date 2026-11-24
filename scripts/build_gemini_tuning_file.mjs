@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { keepOnlyPrintedRowCounts } from "../extractStampText.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.join(__dirname, "..");
@@ -47,7 +48,10 @@ async function run() {
 
   const examples = reviewed.map(raw => ({
     textInput: buildTextInput(raw),
-    output: JSON.stringify(raw.output),
+    // Same row_count rule the app applies to every parse (see
+    // keepOnlyPrintedRowCounts), so tuning doesn't teach the model to report
+    // worked-out totals that are never printed or stamped.
+    output: JSON.stringify(keepOnlyPrintedRowCounts(raw.output, raw.patternText, raw.preferredSizeLabel)),
   }));
 
   await fs.mkdir(outDir, { recursive: true });
